@@ -11,6 +11,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.example.keepersnotes.ui.component.CompactTopBar
+import com.example.keepersnotes.util.LocalizedStrings
 
 data class FaqItem(
     val question: String,
@@ -23,40 +24,24 @@ fun HelpScreen(
     onBack: () -> Unit
 ) {
     val faqs = listOf(
-        FaqItem(
-            question = "如何创建一个新团？",
-            answer = "在首页点击「新建团」按钮，或在「我的团」页面点击右下角的 + 按钮。填写团名、选择游戏系统、关联卷宗后即可创建。"
-        ),
-        FaqItem(
-            question = "如何导入卷宗？",
-            answer = "在卷宗库页面点击右下角的上传按钮，选择 .txt 或 .docx 文件导入单个文档，或选择 .zip 文件批量导入（包含文档和图片）。系统会自动识别章节结构。"
-        ),
-        FaqItem(
-            question = "PC和NPC有什么区别？",
-            answer = "PC（Player Character）是玩家角色，由玩家操控。NPC（Non-Player Character）是非玩家角色，由KP操控，包含隐藏信息如真实目的等。"
-        ),
-        FaqItem(
-            question = "什么是暗线笔记？",
-            answer = "暗线笔记是仅KP可见的备忘录，用于记录剧情暗线、NPC真实目的等不宜让玩家看到的信息。在创建备忘时勾选「暗线笔记」即可。"
-        ),
-        FaqItem(
-            question = "如何备份数据？",
-            answer = "在「我的」页面点击「数据备份」，可以导出所有数据为备份文件。建议在重要操作前进行备份。"
-        ),
-        FaqItem(
-            question = "Session记录有什么用？",
-            answer = "Session记录用于记录每次跑团的内容，包括摘要、重要事件、发现的线索等。方便回顾剧情和准备下次跑团。"
-        )
+        FaqItem(question = LocalizedStrings.faq1Q, answer = LocalizedStrings.faq1A),
+        FaqItem(question = LocalizedStrings.faq2Q, answer = LocalizedStrings.faq2A),
+        FaqItem(question = LocalizedStrings.faq3Q, answer = LocalizedStrings.faq3A),
+        FaqItem(question = LocalizedStrings.faq4Q, answer = LocalizedStrings.faq4A),
+        FaqItem(question = LocalizedStrings.faq5Q, answer = LocalizedStrings.faq5A),
+        FaqItem(question = LocalizedStrings.faq6Q, answer = LocalizedStrings.faq6A),
+        FaqItem(question = LocalizedStrings.faq7Q, answer = LocalizedStrings.faq7A),
+        FaqItem(question = LocalizedStrings.faq8Q, answer = LocalizedStrings.faq8A)
     )
 
     Scaffold(
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
         topBar = {
             CompactTopBar(
-                title = "帮助中心",
+                title = LocalizedStrings.helpTitle,
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "返回")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = LocalizedStrings.back)
                     }
                 }
             )
@@ -71,7 +56,33 @@ fun HelpScreen(
         ) {
             item {
                 Text(
-                    "常见问题",
+                    LocalizedStrings.helpAnnouncement,
+                    style = MaterialTheme.typography.titleLarge
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+            }
+
+            item {
+                Card(modifier = Modifier.fillMaxWidth()) {
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        Text(
+                            LocalizedStrings.helpAnnouncementTitle,
+                            style = MaterialTheme.typography.titleMedium
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            LocalizedStrings.helpAnnouncementBody,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+                Spacer(modifier = Modifier.height(16.dp))
+            }
+
+            item {
+                Text(
+                    LocalizedStrings.helpFaq,
                     style = MaterialTheme.typography.titleLarge
                 )
                 Spacer(modifier = Modifier.height(8.dp))
@@ -84,7 +95,7 @@ fun HelpScreen(
             item {
                 Spacer(modifier = Modifier.height(16.dp))
                 Text(
-                    "联系我们",
+                    LocalizedStrings.helpContact,
                     style = MaterialTheme.typography.titleLarge
                 )
                 Spacer(modifier = Modifier.height(8.dp))
@@ -94,14 +105,19 @@ fun HelpScreen(
                 Card(modifier = Modifier.fillMaxWidth()) {
                     Column(modifier = Modifier.padding(16.dp)) {
                         ListItem(
-                            headlineContent = { Text("反馈与建议") },
-                            supportingContent = { Text("欢迎提交Bug报告或功能建议，最近我在期末周可能回复不及时\n但是会尽量一直维护的") },
+                            headlineContent = { Text(LocalizedStrings.helpFeedback) },
+                            supportingContent = { Text(LocalizedStrings.helpFeedbackDesc) },
                             leadingContent = { Icon(Icons.Default.Feedback, contentDescription = null) }
                         )
                         ListItem(
-                            headlineContent = { Text("邮箱联系") },
+                            headlineContent = { Text(LocalizedStrings.helpEmail) },
                             supportingContent = { Text("1940401320@qq.com") },
                             leadingContent = { Icon(Icons.Default.Email, contentDescription = null) }
+                        )
+                        ListItem(
+                            headlineContent = { Text(LocalizedStrings.helpGithub) },
+                            supportingContent = { Text("https://github.com/Corallyes/KeepersNotes") },
+                            leadingContent = { Icon(Icons.Default.Code, contentDescription = null) }
                         )
                     }
                 }
@@ -116,7 +132,7 @@ private fun FaqCard(faq: FaqItem) {
 
     Card(modifier = Modifier.fillMaxWidth()) {
         Column(modifier = Modifier.padding(16.dp)) {
-            androidx.compose.foundation.layout.Row(
+            Row(
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Text(
@@ -130,7 +146,7 @@ private fun FaqCard(faq: FaqItem) {
                 ) {
                     Icon(
                         if (expanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
-                        contentDescription = if (expanded) "收起" else "展开"
+                        contentDescription = if (expanded) LocalizedStrings.helpCollapse else LocalizedStrings.helpExpand
                     )
                 }
             }

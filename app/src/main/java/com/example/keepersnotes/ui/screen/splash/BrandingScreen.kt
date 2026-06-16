@@ -26,13 +26,13 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontFamily
-import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.keepersnotes.R
 import com.example.keepersnotes.ui.theme.DarkBackground
+import com.example.keepersnotes.util.LocalizedStrings
 import com.example.keepersnotes.ui.theme.DividerDark
 import com.example.keepersnotes.ui.theme.LightInk
 import com.example.keepersnotes.ui.theme.SecondaryLightInk
@@ -98,7 +98,7 @@ fun BrandingScreen(
             // Watermark logo
             Image(
                 painter = painterResource(id = R.drawable.logo_transparent),
-                contentDescription = "守密人笔记",
+                contentDescription = LocalizedStrings.splashTitle,
                 modifier = Modifier
                     .fillMaxWidth(0.6f)
                     .graphicsLayer { alpha = logoAlpha },
@@ -109,7 +109,7 @@ fun BrandingScreen(
 
             // Typewriter title
             Text(
-                text = "守密人笔记",
+                text = LocalizedStrings.splashTitle,
                 color = LightInk,
                 fontSize = 20.sp,
                 fontFamily = FontFamily.Monospace,
@@ -134,11 +134,10 @@ fun BrandingScreen(
 
             // Handwritten subtitle
             Text(
-                text = "记录秘密，保存真相",
+                text = LocalizedStrings.splashSubtitle,
                 color = SecondaryLightInk,
                 fontSize = 15.sp,
                 fontFamily = FontFamily.Cursive,
-                fontStyle = FontStyle.Italic,
                 letterSpacing = 2.sp,
                 textAlign = TextAlign.Center,
                 modifier = Modifier.graphicsLayer { alpha = subtitleAlpha }

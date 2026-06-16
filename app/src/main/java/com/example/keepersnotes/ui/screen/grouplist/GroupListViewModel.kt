@@ -4,13 +4,22 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.keepersnotes.data.local.entity.GroupEntity
 import com.example.keepersnotes.data.repository.GroupRepository
+import com.example.keepersnotes.util.ThemePreferences
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
-enum class GroupFilter(val label: String) {
-    ALL("全部"), ACTIVE("进行中"), PAUSED("暂停"), COMPLETED("已完结")
+enum class GroupFilter(private val zhLabel: String, private val enLabel: String) {
+    ALL("全部", "All"), ACTIVE("进行中", "Active"), PAUSED("暂停", "Paused"), COMPLETED("已完结", "Completed");
+
+    val label: String
+        get() {
+            val isEn = ThemePreferences.currentLanguage == ThemePreferences.LANGUAGE_ENGLISH ||
+                    (ThemePreferences.currentLanguage == ThemePreferences.LANGUAGE_SYSTEM &&
+                        java.util.Locale.getDefault().language == "en")
+            return if (isEn) enLabel else zhLabel
+        }
 }
 
 data class GroupListUiState(

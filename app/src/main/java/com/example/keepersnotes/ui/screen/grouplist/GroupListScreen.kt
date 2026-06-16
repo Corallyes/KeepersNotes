@@ -14,6 +14,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.keepersnotes.ui.component.CompactTopBar
 import com.example.keepersnotes.ui.component.GroupCard
+import com.example.keepersnotes.util.LocalizedStrings
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -27,16 +28,15 @@ fun GroupListScreen(
     Scaffold(
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
         topBar = {
-            CompactTopBar(title = "我的团")
+            CompactTopBar(title = LocalizedStrings.groupListTitle)
         },
         floatingActionButton = {
             FloatingActionButton(onClick = onCreateGroup) {
-                Icon(Icons.Default.Add, contentDescription = "新建团")
+                Icon(Icons.Default.Add, contentDescription = LocalizedStrings.homeNewGroup)
             }
         }
     ) { padding ->
         Column(modifier = Modifier.padding(padding)) {
-            // Filter tabs
             TabRow(selectedTabIndex = GroupFilter.entries.indexOf(uiState.selectedFilter)) {
                 GroupFilter.entries.forEach { filter ->
                     Tab(
@@ -47,7 +47,6 @@ fun GroupListScreen(
                 }
             }
 
-            // Group list
             if (uiState.groups.isEmpty()) {
                 Box(
                     modifier = Modifier
@@ -56,10 +55,10 @@ fun GroupListScreen(
                 ) {
                     Text(
                         text = when (uiState.selectedFilter) {
-                            GroupFilter.ALL -> "还没有创建任何团"
-                            GroupFilter.ACTIVE -> "没有进行中的团"
-                            GroupFilter.PAUSED -> "没有暂停的团"
-                            GroupFilter.COMPLETED -> "没有已完结的团"
+                            GroupFilter.ALL -> LocalizedStrings.groupNoGroupsAll
+                            GroupFilter.ACTIVE -> LocalizedStrings.groupNoGroupsActive
+                            GroupFilter.PAUSED -> LocalizedStrings.groupNoGroupsPaused
+                            GroupFilter.COMPLETED -> LocalizedStrings.groupNoGroupsCompleted
                         },
                         style = MaterialTheme.typography.bodyLarge,
                         color = MaterialTheme.colorScheme.onSurfaceVariant

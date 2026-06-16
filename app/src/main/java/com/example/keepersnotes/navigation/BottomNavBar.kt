@@ -32,6 +32,7 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import androidx.navigation.compose.currentBackStackEntryAsState
 import com.example.keepersnotes.navigation.screen.Screen
+import com.example.keepersnotes.util.LocalizedStrings
 
 data class BottomNavItem(
     val screen: Screen,
@@ -40,17 +41,19 @@ data class BottomNavItem(
     val unselectedIcon: ImageVector
 )
 
-val bottomNavItems = listOf(
-    BottomNavItem(Screen.Home, "首页", Icons.Filled.Home, Icons.Outlined.Home),
-    BottomNavItem(Screen.GroupList, "我的团", Icons.Filled.Style, Icons.Outlined.Style),
-    BottomNavItem(Screen.ModuleLibrary, "卷宗库", Icons.Filled.LibraryBooks, Icons.Outlined.LibraryBooks),
-    BottomNavItem(Screen.Profile, "我的", Icons.Filled.Person, Icons.Outlined.Person)
+@Composable
+private fun bottomNavItems() = listOf(
+    BottomNavItem(Screen.Home, LocalizedStrings.navHome, Icons.Filled.Home, Icons.Outlined.Home),
+    BottomNavItem(Screen.GroupList, LocalizedStrings.navGroups, Icons.Filled.Style, Icons.Outlined.Style),
+    BottomNavItem(Screen.ModuleLibrary, LocalizedStrings.navModules, Icons.Filled.LibraryBooks, Icons.Outlined.LibraryBooks),
+    BottomNavItem(Screen.Profile, LocalizedStrings.navProfile, Icons.Filled.Person, Icons.Outlined.Person)
 )
 
 @Composable
 fun BottomNavBar(navController: NavController) {
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
+    val items = bottomNavItems()
 
     Column(
         modifier = Modifier
@@ -66,7 +69,7 @@ fun BottomNavBar(navController: NavController) {
             tonalElevation = 0.dp,
             windowInsets = WindowInsets(0, 0, 0, 0)
         ) {
-            bottomNavItems.forEach { item ->
+            items.forEach { item ->
                 val selected = currentRoute == item.screen.route
                 NavigationBarItem(
                     icon = {

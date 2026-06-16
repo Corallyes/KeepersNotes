@@ -26,6 +26,7 @@ import com.example.keepersnotes.data.local.entity.ModuleEntity
 import com.example.keepersnotes.ui.component.CompactTopBar
 import com.example.keepersnotes.ui.component.EditModuleDialog
 import com.example.keepersnotes.util.Constants
+import com.example.keepersnotes.util.LocalizedStrings
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.sp
 
@@ -37,23 +38,19 @@ fun ModuleLibraryScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
-    // Import dialog state
     var showImportDialog by remember { mutableStateOf(false) }
     var selectedFileUri by remember { mutableStateOf<Uri?>(null) }
     val snackbarHostState = remember { SnackbarHostState() }
 
-    // Edit/Delete module state
     var moduleToEdit by remember { mutableStateOf<ModuleEntity?>(null) }
     var moduleToDelete by remember { mutableStateOf<ModuleEntity?>(null) }
 
-    // File picker launcher for ZIP
     val zipPickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocument()
     ) { uri: Uri? ->
         uri?.let { viewModel.importZipFromUri(it) }
     }
 
-    // File picker launcher for TXT/DOCX
     val filePickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocument()
     ) { uri: Uri? ->
@@ -63,17 +60,16 @@ fun ModuleLibraryScreen(
         }
     }
 
-    // Handle import result
     LaunchedEffect(uiState.importResult) {
         uiState.importResult?.let { result ->
             showImportDialog = false
             selectedFileUri = null
             when (result) {
                 is ImportResult.Success -> {
-                    snackbarHostState.showSnackbar("「${result.title}」导入成功")
+                    snackbarHostState.showSnackbar("${result.title} ${LocalizedStrings.homeImportSuccess}")
                 }
                 is ImportResult.Error -> {
-                    snackbarHostState.showSnackbar("导入失败: ${result.message}")
+                    snackbarHostState.showSnackbar("${LocalizedStrings.homeImportFail}: ${result.message}")
                 }
             }
             viewModel.clearImportResult()
@@ -83,21 +79,21 @@ fun ModuleLibraryScreen(
     Scaffold(
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
         topBar = {
-            CompactTopBar(title = "卷宗库")
+            CompactTopBar(title = LocalizedStrings.moduleLibraryTitle)
         },
         snackbarHost = { SnackbarHost(snackbarHostState) },
         floatingActionButton = {
             Box {
                 var showFabMenu by remember { mutableStateOf(false) }
                 FloatingActionButton(onClick = { showFabMenu = true }) {
-                    Icon(Icons.Default.Add, contentDescription = "导入")
+                    Icon(Icons.Default.Add, contentDescription = LocalizedStrings.moduleImport)
                 }
                 DropdownMenu(
                     expanded = showFabMenu,
                     onDismissRequest = { showFabMenu = false }
                 ) {
                     DropdownMenuItem(
-                        text = { Text("导入 ZIP 卷宗") },
+                        text = { Text(LocalizedStrings.moduleImportZip) },
                         onClick = {
                             showFabMenu = false
                             zipPickerLauncher.launch(arrayOf("application/zip", "application/x-zip-compressed"))
@@ -105,7 +101,7 @@ fun ModuleLibraryScreen(
                         leadingIcon = { Icon(Icons.Default.Folder, contentDescription = null) }
                     )
                     DropdownMenuItem(
-                        text = { Text("导入单个文档") },
+                        text = { Text(LocalizedStrings.moduleImportSingle) },
                         onClick = {
                             showFabMenu = false
                             filePickerLauncher.launch(arrayOf("text/plain", "application/vnd.openxmlformats-officedocument.wordprocessingml.document"))
@@ -117,13 +113,12 @@ fun ModuleLibraryScreen(
         }
     ) { padding ->
         Column(modifier = Modifier.padding(padding)) {
-            // Search bar
             OutlinedTextField(
                 value = uiState.searchQuery,
                 onValueChange = viewModel::setSearchQuery,
                 placeholder = {
                     Text(
-                        "搜索卷宗",
+                        LocalizedStrings.moduleSearchPlaceholder,
                         fontSize = 12.sp,
                         fontFamily = FontFamily.Serif
                     )
@@ -147,7 +142,7 @@ fun ModuleLibraryScreen(
                         ) {
                             Icon(
                                 Icons.Default.Clear,
-                                contentDescription = "清除",
+                                contentDescription = null,
                                 modifier = Modifier.size(14.dp)
                             )
                         }
@@ -160,7 +155,6 @@ fun ModuleLibraryScreen(
                 singleLine = true
             )
 
-            // Tab row
             TabRow(selectedTabIndex = ModuleTab.entries.indexOf(uiState.selectedTab)) {
                 ModuleTab.entries.forEach { tab ->
                     Tab(
@@ -171,7 +165,6 @@ fun ModuleLibraryScreen(
                 }
             }
 
-            // System filter chips + Sort
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -182,34 +175,33 @@ fun ModuleLibraryScreen(
                     modifier = Modifier.weight(1f),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                item {
-                    FilterChip(
-                        selected = uiState.selectedSystem == null,
-                        onClick = { viewModel.setSystemFilter(null) },
-                        label = { Text("全部") }
-                    )
-                }
-                item {
-                    FilterChip(
-                        selected = uiState.selectedSystem == Constants.SYSTEM_COC7,
-                        onClick = { viewModel.setSystemFilter(Constants.SYSTEM_COC7) },
-                        label = { Text("COC7") }
-                    )
-                }
-                item {
-                    FilterChip(
-                        selected = uiState.selectedSystem == Constants.SYSTEM_DND5E,
-                        onClick = { viewModel.setSystemFilter(Constants.SYSTEM_DND5E) },
-                        label = { Text("DND5e") }
-                    )
-                }
+                    item {
+                        FilterChip(
+                            selected = uiState.selectedSystem == null,
+                            onClick = { viewModel.setSystemFilter(null) },
+                            label = { Text(LocalizedStrings.moduleAll) }
+                        )
+                    }
+                    item {
+                        FilterChip(
+                            selected = uiState.selectedSystem == Constants.SYSTEM_COC7,
+                            onClick = { viewModel.setSystemFilter(Constants.SYSTEM_COC7) },
+                            label = { Text("COC7") }
+                        )
+                    }
+                    item {
+                        FilterChip(
+                            selected = uiState.selectedSystem == Constants.SYSTEM_DND5E,
+                            onClick = { viewModel.setSystemFilter(Constants.SYSTEM_DND5E) },
+                            label = { Text("DND5e") }
+                        )
+                    }
                 }
 
-                // Sort button
                 var showSortMenu by remember { mutableStateOf(false) }
                 Box {
                     IconButton(onClick = { showSortMenu = true }) {
-                        Icon(Icons.Default.Sort, contentDescription = "排序")
+                        Icon(Icons.Default.Sort, contentDescription = LocalizedStrings.moduleSort)
                     }
                     DropdownMenu(
                         expanded = showSortMenu,
@@ -242,11 +234,10 @@ fun ModuleLibraryScreen(
                 }
             }
 
-            // Module list
             if (uiState.modules.isEmpty()) {
                 Box(modifier = Modifier.fillMaxSize().padding(32.dp)) {
                     Text(
-                        text = "暂无卷宗",
+                        text = LocalizedStrings.moduleNoModules,
                         style = MaterialTheme.typography.bodyLarge,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -270,7 +261,6 @@ fun ModuleLibraryScreen(
         }
     }
 
-    // Import module dialog
     if (showImportDialog && selectedFileUri != null) {
         ImportModuleDialog(
             onDismiss = {
@@ -285,7 +275,6 @@ fun ModuleLibraryScreen(
         )
     }
 
-    // Edit module dialog
     moduleToEdit?.let { module ->
         EditModuleDialog(
             module = module,
@@ -297,12 +286,11 @@ fun ModuleLibraryScreen(
         )
     }
 
-    // Delete module confirmation dialog
     moduleToDelete?.let { module ->
         AlertDialog(
             onDismissRequest = { moduleToDelete = null },
-            title = { Text("删除模组") },
-            text = { Text("确定要删除「${module.title}」吗？此操作将同时删除该模组的所有高亮、批注和书签，且不可撤销。") },
+            title = { Text(LocalizedStrings.moduleDeleteTitle) },
+            text = { Text(LocalizedStrings.moduleDeleteConfirm) },
             confirmButton = {
                 TextButton(
                     onClick = {
@@ -310,12 +298,12 @@ fun ModuleLibraryScreen(
                         moduleToDelete = null
                     }
                 ) {
-                    Text("删除", color = MaterialTheme.colorScheme.error)
+                    Text(LocalizedStrings.delete, color = MaterialTheme.colorScheme.error)
                 }
             },
             dismissButton = {
                 TextButton(onClick = { moduleToDelete = null }) {
-                    Text("取消")
+                    Text(LocalizedStrings.cancel)
                 }
             }
         )
@@ -333,29 +321,29 @@ private fun ImportModuleDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("导入卷宗") },
+        title = { Text(LocalizedStrings.moduleImportTitle) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 OutlinedTextField(
                     value = title,
                     onValueChange = { title = it },
-                    label = { Text("卷宗名称 *") },
+                    label = { Text(LocalizedStrings.moduleNameRequired) },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth()
                 )
                 OutlinedTextField(
                     value = author,
                     onValueChange = { author = it },
-                    label = { Text("作者") },
+                    label = { Text(LocalizedStrings.homeAuthor) },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth()
                 )
-                Text("游戏系统", style = MaterialTheme.typography.labelMedium)
+                Text(LocalizedStrings.homeGameSystem, style = MaterialTheme.typography.labelMedium)
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     listOf(
                         Constants.SYSTEM_COC7 to "COC7",
                         Constants.SYSTEM_DND5E to "DND5e",
-                        Constants.SYSTEM_CUSTOM to "自定义"
+                        Constants.SYSTEM_CUSTOM to LocalizedStrings.moduleCustom
                     ).forEach { (value, label) ->
                         FilterChip(
                             selected = system == value,
@@ -371,12 +359,12 @@ private fun ImportModuleDialog(
                 onClick = { onConfirm(title.trim(), author.trim(), system) },
                 enabled = title.isNotBlank()
             ) {
-                Text("导入")
+                Text(LocalizedStrings.homeImport)
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("取消")
+                Text(LocalizedStrings.cancel)
             }
         }
     )
@@ -415,7 +403,7 @@ private fun ModuleCard(
                         )
                         if (module.author.isNotBlank()) {
                             Text(
-                                text = "作者: ${module.author}",
+                                text = "${LocalizedStrings.moduleAuthor}${module.author}",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -424,7 +412,7 @@ private fun ModuleCard(
                     IconButton(onClick = onToggleFavorite) {
                         Icon(
                             if (module.isFavorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
-                            contentDescription = if (module.isFavorite) "取消收藏" else "收藏",
+                            contentDescription = if (module.isFavorite) LocalizedStrings.moduleUnfavorite else LocalizedStrings.moduleFavorite,
                             tint = if (module.isFavorite) MaterialTheme.colorScheme.error
                             else MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -441,7 +429,6 @@ private fun ModuleCard(
                     )
                 }
 
-                // Tags row
                 Row(
                     modifier = Modifier.padding(top = 8.dp),
                     horizontalArrangement = Arrangement.spacedBy(4.dp)
@@ -461,19 +448,18 @@ private fun ModuleCard(
                     if (module.playerCount.isNotBlank()) {
                         SuggestionChip(
                             onClick = {},
-                            label = { Text("${module.playerCount}人", style = MaterialTheme.typography.labelSmall) }
+                            label = { Text("${module.playerCount}${LocalizedStrings.modulePlayers}", style = MaterialTheme.typography.labelSmall) }
                         )
                     }
                 }
             }
 
-            // Context menu
             DropdownMenu(
                 expanded = showContextMenu,
                 onDismissRequest = { showContextMenu = false }
             ) {
                 DropdownMenuItem(
-                    text = { Text("编辑") },
+                    text = { Text(LocalizedStrings.edit) },
                     onClick = {
                         showContextMenu = false
                         onEdit()
@@ -482,7 +468,7 @@ private fun ModuleCard(
                 )
                 HorizontalDivider()
                 DropdownMenuItem(
-                    text = { Text("删除", color = MaterialTheme.colorScheme.error) },
+                    text = { Text(LocalizedStrings.delete, color = MaterialTheme.colorScheme.error) },
                     onClick = {
                         showContextMenu = false
                         onDelete()

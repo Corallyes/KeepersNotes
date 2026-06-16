@@ -13,6 +13,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.keepersnotes.ui.component.CompactTopBar
+import com.example.keepersnotes.util.LocalizedStrings
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -25,7 +26,7 @@ fun ProfileScreen(
     Scaffold(
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
         topBar = {
-            CompactTopBar(title = "我的")
+            CompactTopBar(title = LocalizedStrings.profileTitle)
         }
     ) { padding ->
         Column(
@@ -33,7 +34,6 @@ fun ProfileScreen(
                 .fillMaxSize()
                 .padding(padding)
         ) {
-            // User info section
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -45,7 +45,6 @@ fun ProfileScreen(
                         .padding(16.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    // Avatar placeholder
                     Surface(
                         modifier = Modifier.size(56.dp),
                         shape = MaterialTheme.shapes.large,
@@ -68,7 +67,7 @@ fun ProfileScreen(
                             fontWeight = FontWeight.Bold
                         )
                         Text(
-                            "守密人笔记 用户",
+                            LocalizedStrings.profileUserDesc,
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -78,40 +77,38 @@ fun ProfileScreen(
 
             HorizontalDivider()
 
-            // Menu items
             ProfileMenuItem(
                 icon = Icons.Default.Campaign,
-                label = "公告",
-                subtitle = "查看最新公告和更新日志",
+                label = LocalizedStrings.profileAnnouncement,
+                subtitle = LocalizedStrings.profileAnnouncementDesc,
                 onClick = onNavigateToAnnouncement
             )
 
             ProfileMenuItem(
                 icon = Icons.Default.Backup,
-                label = "数据备份",
-                subtitle = "导出/导入数据",
+                label = LocalizedStrings.profileBackup,
+                subtitle = LocalizedStrings.profileBackupDesc,
                 onClick = onNavigateToBackup
             )
 
             ProfileMenuItem(
                 icon = Icons.Default.Settings,
-                label = "设置",
-                subtitle = "主题、通知等",
+                label = LocalizedStrings.profileSettings,
+                subtitle = LocalizedStrings.profileSettingsDesc,
                 onClick = onNavigateToSettings
             )
 
             ProfileMenuItem(
                 icon = Icons.AutoMirrored.Filled.HelpOutline,
-                label = "帮助中心",
-                subtitle = "常见问题与反馈",
+                label = LocalizedStrings.profileHelp,
+                subtitle = LocalizedStrings.profileHelpDesc,
                 onClick = onNavigateToHelp
             )
 
             Spacer(modifier = Modifier.weight(1f))
 
-            // App version
             Text(
-                text = "守密人笔记 v1.1",
+                text = LocalizedStrings.profileVersion,
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier

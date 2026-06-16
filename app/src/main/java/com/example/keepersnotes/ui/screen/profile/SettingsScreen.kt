@@ -10,9 +10,9 @@ import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import com.example.keepersnotes.ui.component.CompactTopBar
+import com.example.keepersnotes.util.LocalizedStrings
 import com.example.keepersnotes.util.ThemePreferences
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -23,16 +23,17 @@ fun SettingsScreen(
     onNavigateToLicense: () -> Unit = {}
 ) {
     var themeMode by remember { mutableStateOf(ThemePreferences.currentTheme) }
+    var languageMode by remember { mutableStateOf(ThemePreferences.currentLanguage) }
     var autoSave by remember { mutableStateOf(ThemePreferences.autoSaveEnabled) }
 
     Scaffold(
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
         topBar = {
             CompactTopBar(
-                title = "设置",
+                title = LocalizedStrings.settingsTitle,
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "返回")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = LocalizedStrings.back)
                     }
                 }
             )
@@ -44,22 +45,21 @@ fun SettingsScreen(
                 .padding(padding)
                 .verticalScroll(rememberScrollState())
         ) {
-            // Appearance section
             Text(
-                "外观",
+                LocalizedStrings.settingsAppearance,
                 style = MaterialTheme.typography.labelLarge,
                 color = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
             )
 
             ListItem(
-                headlineContent = { Text("外观模式") },
+                headlineContent = { Text(LocalizedStrings.settingsTheme) },
                 supportingContent = {
                     Text(
                         when (themeMode) {
-                            ThemePreferences.THEME_LIGHT -> "浅色模式"
-                            ThemePreferences.THEME_DARK -> "深色模式"
-                            else -> "跟随系统"
+                            ThemePreferences.THEME_LIGHT -> LocalizedStrings.settingsLight
+                            ThemePreferences.THEME_DARK -> LocalizedStrings.settingsDark
+                            else -> LocalizedStrings.settingsFollowSystem
                         }
                     )
                 },
@@ -75,19 +75,41 @@ fun SettingsScreen(
                 }
             )
 
+            ListItem(
+                headlineContent = { Text(LocalizedStrings.settingsLanguage) },
+                supportingContent = {
+                    Text(
+                        when (languageMode) {
+                            ThemePreferences.LANGUAGE_CHINESE -> "中文"
+                            ThemePreferences.LANGUAGE_ENGLISH -> "English"
+                            else -> LocalizedStrings.settingsFollowSystem
+                        }
+                    )
+                },
+                leadingContent = { Icon(Icons.Default.Language, contentDescription = null) },
+                trailingContent = {
+                    LanguageSelector(
+                        selectedLanguage = languageMode,
+                        onLanguageSelected = { lang ->
+                            languageMode = lang
+                            ThemePreferences.setLanguage(lang)
+                        }
+                    )
+                }
+            )
+
             HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
 
-            // Notification section
             Text(
-                "通知",
+                LocalizedStrings.settingsNotification,
                 style = MaterialTheme.typography.labelLarge,
                 color = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
             )
 
             ListItem(
-                headlineContent = { Text("通知提醒") },
-                supportingContent = { Text("设置闹钟和通知提醒方式") },
+                headlineContent = { Text(LocalizedStrings.settingsNotification) },
+                supportingContent = { Text(LocalizedStrings.settingsNotificationDesc) },
                 leadingContent = { Icon(Icons.Default.Notifications, contentDescription = null) },
                 trailingContent = {
                     Icon(
@@ -101,17 +123,16 @@ fun SettingsScreen(
 
             HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
 
-            // Data section
             Text(
-                "数据",
+                LocalizedStrings.settingsData,
                 style = MaterialTheme.typography.labelLarge,
                 color = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
             )
 
             ListItem(
-                headlineContent = { Text("自动保存") },
-                supportingContent = { Text("编辑后自动保存数据") },
+                headlineContent = { Text(LocalizedStrings.settingsAutoSave) },
+                supportingContent = { Text(LocalizedStrings.settingsAutoSaveDesc) },
                 leadingContent = { Icon(Icons.Default.Save, contentDescription = null) },
                 trailingContent = {
                     Switch(
@@ -126,22 +147,21 @@ fun SettingsScreen(
 
             HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
 
-            // About section
             Text(
-                "关于",
+                LocalizedStrings.settingsAbout,
                 style = MaterialTheme.typography.labelLarge,
                 color = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
             )
 
             ListItem(
-                headlineContent = { Text("版本") },
+                headlineContent = { Text(LocalizedStrings.settingsVersion) },
                 supportingContent = { Text("v1.1") },
                 leadingContent = { Icon(Icons.Default.Info, contentDescription = null) }
             )
 
             ListItem(
-                headlineContent = { Text("开源许可") },
+                headlineContent = { Text(LocalizedStrings.settingsLicense) },
                 leadingContent = { Icon(Icons.Default.Code, contentDescription = null) },
                 trailingContent = {
                     Icon(
@@ -182,9 +202,9 @@ private fun ThemeSelector(
             Spacer(modifier = Modifier.width(4.dp))
             Text(
                 text = when (selectedMode) {
-                    ThemePreferences.THEME_LIGHT -> "浅色"
-                    ThemePreferences.THEME_DARK -> "深色"
-                    else -> "跟随系统"
+                    ThemePreferences.THEME_LIGHT -> LocalizedStrings.settingsLightShort
+                    ThemePreferences.THEME_DARK -> LocalizedStrings.settingsDarkShort
+                    else -> LocalizedStrings.settingsFollowSystem
                 },
                 style = MaterialTheme.typography.bodyMedium
             )
@@ -201,7 +221,7 @@ private fun ThemeSelector(
             onDismissRequest = { expanded = false }
         ) {
             DropdownMenuItem(
-                text = { Text("跟随系统") },
+                text = { Text(LocalizedStrings.settingsFollowSystem) },
                 onClick = {
                     onModeSelected(ThemePreferences.THEME_SYSTEM)
                     expanded = false
@@ -209,7 +229,7 @@ private fun ThemeSelector(
                 leadingIcon = { Icon(Icons.Default.SettingsBrightness, contentDescription = null) }
             )
             DropdownMenuItem(
-                text = { Text("浅色模式") },
+                text = { Text(LocalizedStrings.settingsLight) },
                 onClick = {
                     onModeSelected(ThemePreferences.THEME_LIGHT)
                     expanded = false
@@ -217,12 +237,71 @@ private fun ThemeSelector(
                 leadingIcon = { Icon(Icons.Default.LightMode, contentDescription = null) }
             )
             DropdownMenuItem(
-                text = { Text("深色模式") },
+                text = { Text(LocalizedStrings.settingsDark) },
                 onClick = {
                     onModeSelected(ThemePreferences.THEME_DARK)
                     expanded = false
                 },
                 leadingIcon = { Icon(Icons.Default.DarkMode, contentDescription = null) }
+            )
+        }
+    }
+}
+
+@Composable
+private fun LanguageSelector(
+    selectedLanguage: Int,
+    onLanguageSelected: (Int) -> Unit
+) {
+    var expanded by remember { mutableStateOf(false) }
+
+    OutlinedCard(
+        onClick = { expanded = true }
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+            verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
+        ) {
+            Text(
+                text = when (selectedLanguage) {
+                    ThemePreferences.LANGUAGE_CHINESE -> "中文"
+                    ThemePreferences.LANGUAGE_ENGLISH -> "EN"
+                    else -> LocalizedStrings.settingsFollowSystem
+                },
+                style = MaterialTheme.typography.bodyMedium
+            )
+            Spacer(modifier = Modifier.width(4.dp))
+            Icon(
+                Icons.Default.ArrowDropDown,
+                contentDescription = null,
+                modifier = Modifier.size(20.dp)
+            )
+        }
+
+        DropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false }
+        ) {
+            DropdownMenuItem(
+                text = { Text(LocalizedStrings.settingsFollowSystem) },
+                onClick = {
+                    onLanguageSelected(ThemePreferences.LANGUAGE_SYSTEM)
+                    expanded = false
+                }
+            )
+            DropdownMenuItem(
+                text = { Text("中文") },
+                onClick = {
+                    onLanguageSelected(ThemePreferences.LANGUAGE_CHINESE)
+                    expanded = false
+                }
+            )
+            DropdownMenuItem(
+                text = { Text("English") },
+                onClick = {
+                    onLanguageSelected(ThemePreferences.LANGUAGE_ENGLISH)
+                    expanded = false
+                }
             )
         }
     }

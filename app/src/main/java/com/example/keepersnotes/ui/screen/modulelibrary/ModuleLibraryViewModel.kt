@@ -9,22 +9,39 @@ import com.example.keepersnotes.data.local.entity.ModuleEntity
 import com.example.keepersnotes.data.repository.ModuleRepository
 import com.example.keepersnotes.util.FileReaderUtil
 import com.example.keepersnotes.util.ModuleContentParser
+import com.example.keepersnotes.util.ThemePreferences
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import java.util.UUID
 import javax.inject.Inject
 
-enum class ModuleTab(val label: String) {
-    ALL("全部"), FAVORITES("我的收藏"), MINE("我的模组")
+enum class ModuleTab(private val zhLabel: String, private val enLabel: String) {
+    ALL("全部", "All"), FAVORITES("我的收藏", "Favorites"), MINE("我的模组", "My Modules");
+
+    val label: String
+        get() {
+            val isEn = ThemePreferences.currentLanguage == ThemePreferences.LANGUAGE_ENGLISH ||
+                    (ThemePreferences.currentLanguage == ThemePreferences.LANGUAGE_SYSTEM &&
+                        java.util.Locale.getDefault().language == "en")
+            return if (isEn) enLabel else zhLabel
+        }
 }
 
-enum class ModuleSort(val label: String) {
-    NAME_ASC("名称 A-Z"),
-    NAME_DESC("名称 Z-A"),
-    NEWEST("最新导入"),
-    OLDEST("最早导入"),
-    SYSTEM("按系统")
+enum class ModuleSort(private val zhLabel: String, private val enLabel: String) {
+    NAME_ASC("名称 A-Z", "Name A-Z"),
+    NAME_DESC("名称 Z-A", "Name Z-A"),
+    NEWEST("最新导入", "Newest"),
+    OLDEST("最早导入", "Oldest"),
+    SYSTEM("按系统", "By System");
+
+    val label: String
+        get() {
+            val isEn = ThemePreferences.currentLanguage == ThemePreferences.LANGUAGE_ENGLISH ||
+                    (ThemePreferences.currentLanguage == ThemePreferences.LANGUAGE_SYSTEM &&
+                        java.util.Locale.getDefault().language == "en")
+            return if (isEn) enLabel else zhLabel
+        }
 }
 
 sealed class ImportResult {

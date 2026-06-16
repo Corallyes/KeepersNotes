@@ -25,6 +25,7 @@ import com.example.keepersnotes.ui.component.CompactTopBar
 import com.example.keepersnotes.ui.component.GroupCard
 import com.example.keepersnotes.ui.component.StatsCardRow
 import com.example.keepersnotes.util.Constants
+import com.example.keepersnotes.util.LocalizedStrings
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -72,10 +73,10 @@ fun HomeScreen(
             selectedFileUri = null
             when (result) {
                 is ImportResult.Success -> {
-                    snackbarHostState.showSnackbar("模组「${result.moduleTitle}」导入成功")
+                    snackbarHostState.showSnackbar("${result.moduleTitle} ${LocalizedStrings.homeImportSuccess}")
                 }
                 is ImportResult.Error -> {
-                    snackbarHostState.showSnackbar("导入失败: ${result.message}")
+                    snackbarHostState.showSnackbar("${LocalizedStrings.homeImportFail}: ${result.message}")
                 }
             }
             viewModel.clearImportResult()
@@ -87,17 +88,17 @@ fun HomeScreen(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             CompactTopBar(
-                title = "守密人笔记",
+                title = LocalizedStrings.homeTitle,
                 actions = {
                     IconButton(onClick = onNavigateToSearch) {
-                        Icon(Icons.Default.Search, contentDescription = "搜索")
+                        Icon(Icons.Default.Search, contentDescription = LocalizedStrings.search)
                     }
                 }
             )
         },
         floatingActionButton = {
             FloatingActionButton(onClick = onCreateGroup) {
-                Icon(Icons.Default.Add, contentDescription = "新建团")
+                Icon(Icons.Default.Add, contentDescription = LocalizedStrings.homeNewGroup)
             }
         }
     ) { padding ->
@@ -109,9 +110,8 @@ fun HomeScreen(
             verticalArrangement = Arrangement.spacedBy(16.dp),
             contentPadding = PaddingValues(vertical = 16.dp)
         ) {
-            // Stats overview cards
             item {
-                Text("数据概览", style = MaterialTheme.typography.titleMedium)
+                Text(LocalizedStrings.homeDataOverview, style = MaterialTheme.typography.titleMedium)
             }
             item {
                 StatsCardRow(
@@ -122,9 +122,8 @@ fun HomeScreen(
                 )
             }
 
-            // Calendar
             item {
-                Text("日程日历", style = MaterialTheme.typography.titleMedium)
+                Text(LocalizedStrings.homeCalendar, style = MaterialTheme.typography.titleMedium)
             }
             item {
                 Card(modifier = Modifier.fillMaxWidth()) {
@@ -135,13 +134,12 @@ fun HomeScreen(
                             onDateSelected = { viewModel.selectDate(it) }
                         )
 
-                        // 选中日期的事件列表
                         if (uiState.selectedDate != null && uiState.selectedDateEvents.isNotEmpty()) {
                             Spacer(modifier = Modifier.height(12.dp))
                             HorizontalDivider()
                             Spacer(modifier = Modifier.height(12.dp))
                             Text(
-                                text = "当天日程",
+                                text = LocalizedStrings.homeDaySchedule,
                                 style = MaterialTheme.typography.titleSmall,
                                 fontWeight = FontWeight.Bold
                             )
@@ -157,15 +155,14 @@ fun HomeScreen(
                 }
             }
 
-            // Upcoming session plan
             item {
-                Text("近期开团计划", style = MaterialTheme.typography.titleMedium)
+                Text(LocalizedStrings.homeUpcoming, style = MaterialTheme.typography.titleMedium)
             }
             if (uiState.upcomingGroups.isEmpty()) {
                 item {
                     Card(modifier = Modifier.fillMaxWidth()) {
                         Text(
-                            text = "暂无近期开团计划",
+                            text = LocalizedStrings.homeNoUpcoming,
                             modifier = Modifier.padding(16.dp),
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -181,9 +178,8 @@ fun HomeScreen(
                 }
             }
 
-            // Quick actions
             item {
-                Text("快速操作", style = MaterialTheme.typography.titleMedium)
+                Text(LocalizedStrings.homeQuickActions, style = MaterialTheme.typography.titleMedium)
             }
             item {
                 Row(
@@ -192,13 +188,13 @@ fun HomeScreen(
                 ) {
                     QuickActionButton(
                         icon = Icons.Default.Add,
-                        label = "新建团",
+                        label = LocalizedStrings.homeNewGroup,
                         onClick = onCreateGroup,
                         modifier = Modifier.weight(1f)
                     )
                     QuickActionButton(
                         icon = Icons.Default.FileUpload,
-                        label = "导入模组",
+                        label = LocalizedStrings.homeImportModule,
                         onClick = {
                             filePickerLauncher.launch(
                                 arrayOf(
@@ -211,7 +207,7 @@ fun HomeScreen(
                     )
                     QuickActionButton(
                         icon = Icons.Default.PersonAdd,
-                        label = "添加PC",
+                        label = LocalizedStrings.homeAddPc,
                         onClick = {
                             if (uiState.activeGroups.size == 1) {
                                 onNavigateToCreatePc(uiState.activeGroups.first().groupId)
@@ -224,15 +220,14 @@ fun HomeScreen(
                 }
             }
 
-            // Active groups
             item {
-                Text("进行中的团", style = MaterialTheme.typography.titleMedium)
+                Text(LocalizedStrings.homeActiveGroups, style = MaterialTheme.typography.titleMedium)
             }
             if (uiState.activeGroups.isEmpty()) {
                 item {
                     Card(modifier = Modifier.fillMaxWidth()) {
                         Text(
-                            text = "还没有创建任何团，点击右下角 + 开始吧",
+                            text = LocalizedStrings.homeNoGroups,
                             modifier = Modifier.padding(16.dp),
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -281,10 +276,10 @@ fun HomeScreen(
     updateInfo?.let { info ->
         AlertDialog(
             onDismissRequest = { updateInfo = null },
-            title = { Text("发现新版本 ${info.versionName}") },
+            title = { Text("${LocalizedStrings.homeNewVersion} ${info.versionName}") },
             text = {
                 Column {
-                    Text("更新内容：")
+                    Text(LocalizedStrings.homeUpdateContent)
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
                         info.changelog,
@@ -299,12 +294,12 @@ fun HomeScreen(
                     checker.openDownloadPage(context, info.downloadUrl)
                     updateInfo = null
                 }) {
-                    Text("去下载")
+                    Text(LocalizedStrings.homeDownload)
                 }
             },
             dismissButton = {
                 TextButton(onClick = { updateInfo = null }) {
-                    Text("稍后")
+                    Text(LocalizedStrings.homeLater)
                 }
             }
         )
@@ -322,24 +317,24 @@ private fun ImportModuleDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("导入模组") },
+        title = { Text(LocalizedStrings.homeImportDialogTitle) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 OutlinedTextField(
                     value = title,
                     onValueChange = { title = it },
-                    label = { Text("模组名称") },
+                    label = { Text(LocalizedStrings.homeModuleName) },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true
                 )
                 OutlinedTextField(
                     value = author,
                     onValueChange = { author = it },
-                    label = { Text("作者") },
+                    label = { Text(LocalizedStrings.homeAuthor) },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true
                 )
-                Text("游戏系统", style = MaterialTheme.typography.labelMedium)
+                Text(LocalizedStrings.homeGameSystem, style = MaterialTheme.typography.labelMedium)
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     listOf(Constants.SYSTEM_COC7, Constants.SYSTEM_DND5E).forEach { s ->
                         FilterChip(
@@ -353,12 +348,12 @@ private fun ImportModuleDialog(
         },
         confirmButton = {
             TextButton(onClick = { onConfirm(title, author, system) }) {
-                Text("导入")
+                Text(LocalizedStrings.homeImport)
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("取消")
+                Text(LocalizedStrings.cancel)
             }
         }
     )
@@ -372,10 +367,10 @@ private fun GroupSelectorDialog(
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("选择团") },
+        title = { Text(LocalizedStrings.homeSelectGroup) },
         text = {
             if (groups.isEmpty()) {
-                Text("还没有创建任何团，请先创建一个团")
+                Text(LocalizedStrings.homeNoGroupPrompt)
             } else {
                 Column {
                     groups.forEach { group ->
@@ -394,7 +389,7 @@ private fun GroupSelectorDialog(
         },
         confirmButton = {
             TextButton(onClick = onDismiss) {
-                Text("取消")
+                Text(LocalizedStrings.cancel)
             }
         }
     )

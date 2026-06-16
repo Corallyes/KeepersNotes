@@ -14,6 +14,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.keepersnotes.ui.component.CompactTopBar
 import com.example.keepersnotes.ui.screen.groupdetail.tab.*
+import com.example.keepersnotes.util.LocalizedStrings
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -32,17 +33,25 @@ fun GroupDetailScreen(
     viewModel: GroupDetailViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    val tabs = listOf("概览", "PC角色库", "NPC档案", "模组内容", "Session记录", "KP备忘录", "关系网")
+    val tabs = listOf(
+        LocalizedStrings.groupOverview,
+        LocalizedStrings.groupPcLibrary,
+        LocalizedStrings.groupNpcArchive,
+        LocalizedStrings.groupModuleContent,
+        LocalizedStrings.groupSessionRecord,
+        LocalizedStrings.groupKpMemo,
+        "关系网"
+    )
     var selectedTab by remember { mutableIntStateOf(0) }
 
     Scaffold(
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
         topBar = {
             CompactTopBar(
-                title = uiState.group?.groupName ?: "团详情",
+                title = uiState.group?.groupName ?: LocalizedStrings.groupDetailTitle,
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "返回")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = LocalizedStrings.back)
                     }
                 }
             )
@@ -117,19 +126,19 @@ private fun GroupRelationshipTab(
             )
             Spacer(modifier = Modifier.height(16.dp))
             Text(
-                "团关系图谱",
+                LocalizedStrings.groupRelationshipTitle,
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold
             )
             Spacer(modifier = Modifier.height(8.dp))
             Text(
-                "当前有 $relationshipCount 条关系",
+                "${LocalizedStrings.groupRelationshipPrefix}$relationshipCount${LocalizedStrings.groupRelationshipCount}",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             Spacer(modifier = Modifier.height(24.dp))
             Button(onClick = onNavigateToRelationship) {
-                Text("查看关系图谱")
+                Text(LocalizedStrings.groupRelationshipView)
             }
         }
     }

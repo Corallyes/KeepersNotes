@@ -24,6 +24,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import com.example.keepersnotes.R
 import com.example.keepersnotes.ui.theme.DarkBackground
+import com.example.keepersnotes.util.LocalizedStrings
 import kotlinx.coroutines.delay
 import kotlin.random.Random
 
@@ -55,7 +56,7 @@ fun SplashScreen(
 
         Image(
             painter = painterResource(id = R.drawable.logo_transparent),
-            contentDescription = "守密人笔记",
+            contentDescription = LocalizedStrings.splashTitle,
             modifier = Modifier
                 .fillMaxWidth(0.7f)
                 .graphicsLayer { alpha = logoAlpha },
