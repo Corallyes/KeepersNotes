@@ -21,6 +21,10 @@ TRPG Keeper 辅助工具，帮助 Keeper 管理团务、模组、角色和 Sessi
 - MVVM 架构 (ViewModel + StateFlow)
 - AlarmManager / WorkManager 通知提醒
 
+## 联系我们
+
+如果你有建议、反馈或想参与项目，欢迎通过 [GitHub](https://github.com/Corallyes/KeepersNotes) 联系我。
+
 ## 许可证
 
 本项目采用 [CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/) 许可协议。
