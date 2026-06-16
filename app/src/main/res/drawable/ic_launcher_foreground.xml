@@ -1,0 +1,69 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- Notebook cover - expanded to fill more space -->
+    <path
+        android:fillColor="#A47D3C"
+        android:pathData="M26,20L82,20C84,20 86,22 86,24L86,84C86,86 84,88 82,88L26,88C24,88 22,86 22,84L22,24C22,22 24,20 26,20z" />
+    <!-- Notebook spine -->
+    <path
+        android:fillColor="#8A6734"
+        android:pathData="M26,20L31,20L31,88L26,88C24,88 22,86 22,84L22,24C22,22 24,20 26,20z" />
+    <!-- Spine lines -->
+    <path
+        android:fillColor="#00000000"
+        android:pathData="M27,26L27,82"
+        android:strokeWidth="0.5"
+        android:strokeColor="#7A5B35" />
+    <path
+        android:fillColor="#00000000"
+        android:pathData="M29.5,26L29.5,82"
+        android:strokeWidth="0.5"
+        android:strokeColor="#7A5B35" />
+    <!-- Cover border -->
+    <path
+        android:fillColor="#00000000"
+        android:pathData="M34,26L78,26L78,82L34,82z"
+        android:strokeWidth="0.8"
+        android:strokeColor="#C49644" />
+    <!-- Inner border -->
+    <path
+        android:fillColor="#00000000"
+        android:pathData="M37,29L75,29L75,79L37,79z"
+        android:strokeWidth="0.4"
+        android:strokeColor="#C49644" />
+    <!-- Keyhole circle -->
+    <path
+        android:fillColor="#1E1B18"
+        android:pathData="M56,46A5,5 0,1 1,56.01 46z" />
+    <!-- Keyhole slot -->
+    <path
+        android:fillColor="#1E1B18"
+        android:pathData="M54,49L58,49L58,58L59,58L59,63L53,63L53,58L54,58z" />
+    <!-- Title text lines (abstract) -->
+    <path
+        android:fillColor="#E2D7C3"
+        android:pathData="M44,35L68,35"
+        android:strokeWidth="1.2"
+        android:strokeColor="#E2D7C3"
+        android:strokeLineCap="square" />
+    <path
+        android:fillColor="#E2D7C3"
+        android:pathData="M46,38.5L66,38.5"
+        android:strokeWidth="0.8"
+        android:strokeColor="#A89C8B"
+        android:strokeLineCap="square" />
+    <!-- Bottom decorative line -->
+    <path
+        android:fillColor="#00000000"
+        android:pathData="M44,72L68,72"
+        android:strokeWidth="0.5"
+        android:strokeColor="#C49644" />
+    <path
+        android:fillColor="#00000000"
+        android:pathData="M48,74.5L64,74.5"
+        android:strokeWidth="0.3"
+        android:strokeColor="#C49644" />
+</vector>
