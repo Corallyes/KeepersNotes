@@ -29,7 +29,7 @@ import com.example.keepersnotes.data.local.entity.*
         GroupRelationshipEntity::class,
         CalendarEventEntity::class
     ],
-    version = 10,
+    version = 13,
     exportSchema = true
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -41,7 +41,6 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun kpMemoDao(): KpMemoDao
     abstract fun archiveDao(): ArchiveDao
     abstract fun imageDao(): ImageDao
-    abstract fun imageGroupDao(): ImageGroupDao
     abstract fun highlightDao(): HighlightDao
     abstract fun annotationDao(): AnnotationDao
     abstract fun readingProgressDao(): ReadingProgressDao

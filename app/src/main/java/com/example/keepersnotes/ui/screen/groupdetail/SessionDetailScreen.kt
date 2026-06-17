@@ -21,10 +21,9 @@ import java.util.*
 fun SessionDetailScreen(
     sessionId: String,
     onBack: () -> Unit,
-    viewModel: GroupDetailViewModel = hiltViewModel()
+    viewModel: SessionDetailViewModel = hiltViewModel()
 ) {
-    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    val session = uiState.sessions.find { it.sessionId == sessionId }
+    val session by viewModel.session.collectAsStateWithLifecycle()
 
     Scaffold(
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
@@ -44,7 +43,8 @@ fun SessionDetailScreen(
             )
         }
     ) { padding ->
-        if (session == null) {
+        val currentSession = session
+        if (currentSession == null) {
             Box(modifier = Modifier.fillMaxSize().padding(padding)) {
                 Text("加载中...", modifier = Modifier.padding(16.dp))
             }
@@ -62,36 +62,31 @@ fun SessionDetailScreen(
             // Session info
             Card(modifier = Modifier.fillMaxWidth()) {
                 Column(modifier = Modifier.padding(16.dp)) {
-                    Text("Session ${session.sessionNumber}", style = MaterialTheme.typography.headlineSmall)
-                    Text("日期: ${formatDate(session.date)}", style = MaterialTheme.typography.bodyMedium)
-                    if (session.durationMinutes > 0) {
-                        Text("时长: ${session.durationMinutes / 60}h${session.durationMinutes % 60}min", style = MaterialTheme.typography.bodyMedium)
+                    Text("Session ${currentSession.sessionNumber}", style = MaterialTheme.typography.headlineSmall)
+                    Text("日期: ${formatDate(currentSession.date)}", style = MaterialTheme.typography.bodyMedium)
+                    if (currentSession.durationMinutes > 0) {
+                        Text("时长: ${currentSession.durationMinutes / 60}h${currentSession.durationMinutes % 60}min", style = MaterialTheme.typography.bodyMedium)
                     }
                 }
             }
 
             // Summary
-            if (session.summary.isNotBlank()) {
+            if (currentSession.summary.isNotBlank()) {
                 Card(modifier = Modifier.fillMaxWidth()) {
                     Column(modifier = Modifier.padding(16.dp)) {
                         Text("本场摘要", style = MaterialTheme.typography.titleSmall)
                         Spacer(modifier = Modifier.height(4.dp))
-                        Text(session.summary, style = MaterialTheme.typography.bodyMedium)
+                        Text(currentSession.summary, style = MaterialTheme.typography.bodyMedium)
                     }
                 }
             }
 
-            // TODO: Important events list
-            // TODO: Clues found list
-            // TODO: Dice rolls log
-            // TODO: Next session notes
-
-            if (session.nextSessionNotes.isNotBlank()) {
+            if (currentSession.nextSessionNotes.isNotBlank()) {
                 Card(modifier = Modifier.fillMaxWidth()) {
                     Column(modifier = Modifier.padding(16.dp)) {
                         Text("下局预告", style = MaterialTheme.typography.titleSmall)
                         Spacer(modifier = Modifier.height(4.dp))
-                        Text(session.nextSessionNotes, style = MaterialTheme.typography.bodyMedium)
+                        Text(currentSession.nextSessionNotes, style = MaterialTheme.typography.bodyMedium)
                     }
                 }
             }

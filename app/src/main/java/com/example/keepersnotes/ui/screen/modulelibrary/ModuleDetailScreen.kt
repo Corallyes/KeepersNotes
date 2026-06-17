@@ -2,9 +2,11 @@ package com.example.keepersnotes.ui.screen.modulelibrary
 
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectTransformGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
@@ -19,14 +21,18 @@ import androidx.compose.material.icons.automirrored.filled.Note
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.rememberAsyncImagePainter
@@ -56,7 +62,8 @@ fun ModuleDetailScreen(
     var showEditDialog by remember { mutableStateOf(false) }
     var showDeleteDialog by remember { mutableStateOf(false) }
     var imageToDelete by remember { mutableStateOf<ImageEntity?>(null) }
-    var selectedImageTab by remember { mutableIntStateOf(0) } // 0=信息, 1=图片
+    var selectedImageTab by rememberSaveable { mutableIntStateOf(0) } // 0=信息, 1=图片
+    var viewingImage by remember { mutableStateOf<ImageEntity?>(null) }
 
     // Image picker
     val imagePickerLauncher = rememberLauncherForActivityResult(
@@ -190,7 +197,7 @@ fun ModuleDetailScreen(
                 )
                 1 -> ModuleImageGrid(
                     images = uiState.images,
-                    onImageClick = onImageClick,
+                    onImageClick = { image -> viewingImage = image },
                     onDeleteImage = { imageToDelete = it }
                 )
                 2 -> ModuleNotesContent(
@@ -265,6 +272,14 @@ fun ModuleDetailScreen(
                     Text("取消")
                 }
             }
+        )
+    }
+
+    // 图片查看器
+    viewingImage?.let { image ->
+        ImageViewerDialog(
+            image = image,
+            onDismiss = { viewingImage = null }
         )
     }
 }
@@ -470,7 +485,11 @@ private fun ModuleDetailContent(
                 )
             }
             items(uiState.chapters) { chapter ->
-                ChapterListItem(chapter = chapter, depth = 0, onClick = onStartReading)
+                ChapterListItem(
+                    chapter = chapter,
+                    depth = 0,
+                    onClick = { onNavigateToChapter(chapter.id) }
+                )
             }
         }
     }
@@ -479,7 +498,7 @@ private fun ModuleDetailContent(
 @Composable
 private fun ModuleImageGrid(
     images: List<ImageEntity>,
-    onImageClick: (Int) -> Unit,
+    onImageClick: (ImageEntity) -> Unit,
     onDeleteImage: (ImageEntity) -> Unit
 ) {
     if (images.isEmpty()) {
@@ -513,7 +532,7 @@ private fun ModuleImageGrid(
                 val image = images[index]
                 ModuleImageCard(
                     image = image,
-                    onClick = { onImageClick(index) },
+                    onClick = { onImageClick(image) },
                     onDelete = { onDeleteImage(image) }
                 )
             }
@@ -1048,17 +1067,6 @@ private fun ModuleSettingsContent(
         contentPadding = PaddingValues(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        // 推荐PC
-        item {
-            SettingsNavItem(
-                title = "推荐PC",
-                count = uiState.defaultPcs.size,
-                icon = Icons.Default.Person,
-                iconTint = Color(0xFF2196F3),
-                onClick = { onNavigateToEntityList("pc") }
-            )
-        }
-
         // 默认NPC
         item {
             SettingsNavItem(
@@ -1103,10 +1111,10 @@ private fun ModuleSettingsContent(
             )
         }
 
-        // 默认关系网
+        // 人物关系网
         item {
             SettingsNavItem(
-                title = "默认关系网",
+                title = "人物关系网",
                 count = uiState.relationships.size,
                 icon = Icons.Default.AccountTree,
                 iconTint = Color(0xFF795548),
@@ -1149,3 +1157,74 @@ private fun SettingsNavItem(
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+private fun ImageViewerDialog(
+    image: ImageEntity,
+    onDismiss: () -> Unit
+) {
+    var scale by remember { mutableFloatStateOf(1f) }
+    var offsetX by remember { mutableFloatStateOf(0f) }
+    var offsetY by remember { mutableFloatStateOf(0f) }
+
+    Dialog(onDismissRequest = onDismiss) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color.Black)
+                .pointerInput(Unit) {
+                    detectTransformGestures { _, pan, zoom, _ ->
+                        scale = (scale * zoom).coerceIn(0.5f, 5f)
+                        offsetX += pan.x
+                        offsetY += pan.y
+                    }
+                },
+            contentAlignment = Alignment.Center
+        ) {
+            val file = File(image.filePath)
+            if (file.exists()) {
+                Image(
+                    painter = rememberAsyncImagePainter(model = file),
+                    contentDescription = image.title,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .graphicsLayer(
+                            scaleX = scale,
+                            scaleY = scale,
+                            translationX = offsetX,
+                            translationY = offsetY
+                        ),
+                    contentScale = ContentScale.Fit
+                )
+            } else {
+                Text(
+                    "图片丢失",
+                    color = Color.White,
+                    style = MaterialTheme.typography.bodyLarge
+                )
+            }
+            // Close button
+            IconButton(
+                onClick = onDismiss,
+                modifier = Modifier.align(Alignment.TopEnd).padding(16.dp)
+            ) {
+                Icon(
+                    Icons.Default.Close,
+                    contentDescription = "关闭",
+                    tint = Color.White
+                )
+            }
+            // Title
+            if (image.title.isNotBlank()) {
+                Text(
+                    text = image.title,
+                    color = Color.White,
+                    style = MaterialTheme.typography.titleMedium,
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .padding(16.dp)
+                )
+            }
+        }
+    }
+}

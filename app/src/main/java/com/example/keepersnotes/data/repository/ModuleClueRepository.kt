@@ -20,6 +20,8 @@ class ModuleClueRepository @Inject constructor(
 
     suspend fun insert(entity: ModuleClueEntity) = dao.insert(entity)
 
+    suspend fun insertAll(entities: List<ModuleClueEntity>) = dao.insertAll(entities)
+
     suspend fun update(entity: ModuleClueEntity) = dao.update(entity)
 
     suspend fun deleteById(id: String) = dao.deleteById(id)

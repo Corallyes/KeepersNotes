@@ -9,6 +9,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -16,16 +17,19 @@ import com.example.keepersnotes.data.local.entity.KpMemoEntity
 import com.example.keepersnotes.ui.component.CompactTopBar
 import com.example.keepersnotes.ui.component.MemoTypeBadge
 import com.example.keepersnotes.util.Constants
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MemoDetailScreen(
     memoId: String,
     onBack: () -> Unit,
-    viewModel: GroupDetailViewModel = hiltViewModel()
+    viewModel: MemoDetailViewModel = hiltViewModel()
 ) {
-    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    val memo = uiState.memos.find { it.memoId == memoId }
+    val memo by viewModel.memo.collectAsStateWithLifecycle()
+    val context = LocalContext.current
     var showEditSheet by remember { mutableStateOf(false) }
     var showDeleteDialog by remember { mutableStateOf(false) }
 
@@ -50,7 +54,8 @@ fun MemoDetailScreen(
             )
         }
     ) { padding ->
-        if (memo == null) {
+        val currentMemo = memo
+        if (currentMemo == null) {
             Box(modifier = Modifier.fillMaxSize().padding(padding)) {
                 Text("加载中...", modifier = Modifier.padding(16.dp))
             }
@@ -71,15 +76,15 @@ fun MemoDetailScreen(
                         modifier = Modifier.fillMaxWidth(),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        MemoTypeBadge(type = memo.type)
+                        MemoTypeBadge(type = currentMemo.type)
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
-                            text = memo.title,
+                            text = currentMemo.title,
                             style = MaterialTheme.typography.headlineSmall,
                             modifier = Modifier.weight(1f)
                         )
                     }
-                    if (memo.isHidden) {
+                    if (currentMemo.isHidden) {
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
                             "暗线笔记",
@@ -87,16 +92,16 @@ fun MemoDetailScreen(
                             color = MaterialTheme.colorScheme.error
                         )
                     }
-                    if (memo.priority > 0) {
+                    if (currentMemo.priority > 0) {
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
-                            text = when (memo.priority) {
+                            text = when (currentMemo.priority) {
                                 1 -> "重要"
                                 2 -> "紧急"
                                 else -> ""
                             },
                             style = MaterialTheme.typography.labelSmall,
-                            color = if (memo.priority == 2) MaterialTheme.colorScheme.error
+                            color = if (currentMemo.priority == 2) MaterialTheme.colorScheme.error
                             else MaterialTheme.colorScheme.tertiary
                         )
                     }
@@ -104,23 +109,23 @@ fun MemoDetailScreen(
             }
 
             // Content
-            if (memo.content.isNotBlank()) {
+            if (currentMemo.content.isNotBlank()) {
                 Card(modifier = Modifier.fillMaxWidth()) {
                     Column(modifier = Modifier.padding(16.dp)) {
                         Text("内容", style = MaterialTheme.typography.titleSmall)
                         Spacer(modifier = Modifier.height(4.dp))
-                        Text(memo.content, style = MaterialTheme.typography.bodyMedium)
+                        Text(currentMemo.content, style = MaterialTheme.typography.bodyMedium)
                     }
                 }
             }
 
             // 关联的模组和章节
-            if (memo.moduleId != null || memo.chapterTitle.isNotBlank()) {
+            if (currentMemo.moduleId != null || currentMemo.chapterTitle.isNotBlank()) {
                 Card(modifier = Modifier.fillMaxWidth()) {
                     Column(modifier = Modifier.padding(16.dp)) {
                         Text("关联内容", style = MaterialTheme.typography.titleSmall)
                         Spacer(modifier = Modifier.height(8.dp))
-                        if (memo.chapterTitle.isNotBlank()) {
+                        if (currentMemo.chapterTitle.isNotBlank()) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Icon(
                                     Icons.Default.Book,
@@ -130,7 +135,7 @@ fun MemoDetailScreen(
                                 )
                                 Spacer(modifier = Modifier.width(8.dp))
                                 Text(
-                                    memo.chapterTitle,
+                                    currentMemo.chapterTitle,
                                     style = MaterialTheme.typography.bodyMedium
                                 )
                             }
@@ -140,31 +145,56 @@ fun MemoDetailScreen(
             }
 
             // Tags
-            if (memo.tags.isNotBlank()) {
+            if (currentMemo.tags.isNotBlank()) {
                 Card(modifier = Modifier.fillMaxWidth()) {
                     Column(modifier = Modifier.padding(16.dp)) {
                         Text("标签", style = MaterialTheme.typography.titleSmall)
                         Spacer(modifier = Modifier.height(4.dp))
-                        Text(memo.tags, style = MaterialTheme.typography.bodyMedium)
+                        Text(currentMemo.tags, style = MaterialTheme.typography.bodyMedium)
                     }
                 }
             }
 
             // Status for todo type
-            if (memo.type == Constants.MEMO_TYPE_TODO) {
+            if (currentMemo.type == Constants.MEMO_TYPE_TODO) {
                 Card(modifier = Modifier.fillMaxWidth()) {
                     Row(
                         modifier = Modifier.padding(16.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Checkbox(
-                            checked = memo.isCompleted,
-                            onCheckedChange = { viewModel.toggleMemoCompleted(memo.memoId) }
+                            checked = currentMemo.isCompleted,
+                            onCheckedChange = { viewModel.toggleCompleted() }
                         )
                         Text(
-                            if (memo.isCompleted) "已完成" else "未完成",
+                            if (currentMemo.isCompleted) "已完成" else "未完成",
                             style = MaterialTheme.typography.bodyMedium
                         )
+                    }
+                }
+            }
+
+            // 通知信息（提醒类型）
+            if (currentMemo.type == Constants.MEMO_TYPE_REMINDER && currentMemo.isNotificationEnabled && currentMemo.notificationTime != null) {
+                Card(modifier = Modifier.fillMaxWidth()) {
+                    Row(
+                        modifier = Modifier.padding(16.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            Icons.Default.Notifications,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Column {
+                            Text("定时提醒", style = MaterialTheme.typography.titleSmall)
+                            val dateFormat = SimpleDateFormat("yyyy年MM月dd日 HH:mm", Locale.getDefault())
+                            Text(
+                                dateFormat.format(Date(currentMemo.notificationTime!!)),
+                                style = MaterialTheme.typography.bodyMedium
+                            )
+                        }
                     }
                 }
             }
@@ -172,29 +202,32 @@ fun MemoDetailScreen(
     }
 
     // Edit sheet
-    if (showEditSheet && memo != null) {
+    val editMemo = memo
+    if (showEditSheet && editMemo != null) {
         EditMemoSheet(
-            memo = memo,
+            memo = editMemo,
             onDismiss = { showEditSheet = false },
             onSave = { updatedMemo ->
-                viewModel.updateMemo(updatedMemo)
+                viewModel.updateMemo(updatedMemo, context)
                 showEditSheet = false
             }
         )
     }
 
     // Delete confirmation dialog
-    if (showDeleteDialog && memo != null) {
+    val deleteMemo = memo
+    if (showDeleteDialog && deleteMemo != null) {
         AlertDialog(
             onDismissRequest = { showDeleteDialog = false },
             title = { Text("删除备忘") },
-            text = { Text("确定要删除「${memo.title}」吗？此操作不可撤销。") },
+            text = { Text("确定要删除「${deleteMemo.title}」吗？此操作不可撤销。") },
             confirmButton = {
                 TextButton(
                     onClick = {
-                        viewModel.deleteMemo(memo.memoId)
-                        showDeleteDialog = false
-                        onBack()
+                        viewModel.deleteMemo(context) {
+                            showDeleteDialog = false
+                            onBack()
+                        }
                     }
                 ) {
                     Text("删除", color = MaterialTheme.colorScheme.error)
@@ -222,15 +255,34 @@ private fun EditMemoSheet(
     var isHidden by remember { mutableStateOf(memo.isHidden) }
     var priority by remember { mutableStateOf(memo.priority) }
     var tags by remember { mutableStateOf(memo.tags) }
+    var isNotificationEnabled by remember { mutableStateOf(memo.isNotificationEnabled) }
+    var notificationDate by remember { mutableStateOf(memo.notificationTime?.let { time ->
+        val cal = java.util.Calendar.getInstance().apply { timeInMillis = time }
+        cal.set(java.util.Calendar.HOUR_OF_DAY, 0)
+        cal.set(java.util.Calendar.MINUTE, 0)
+        cal.set(java.util.Calendar.SECOND, 0)
+        cal.set(java.util.Calendar.MILLISECOND, 0)
+        cal.timeInMillis
+    }) }
+    var notificationHour by remember { mutableIntStateOf(memo.notificationTime?.let {
+        val cal = java.util.Calendar.getInstance().apply { timeInMillis = it }
+        cal.get(java.util.Calendar.HOUR_OF_DAY)
+    } ?: 9) }
+    var notificationMinute by remember { mutableIntStateOf(memo.notificationTime?.let {
+        val cal = java.util.Calendar.getInstance().apply { timeInMillis = it }
+        cal.get(java.util.Calendar.MINUTE)
+    } ?: 0) }
+    var showDatePicker by remember { mutableStateOf(false) }
+    var showTimePicker by remember { mutableStateOf(false) }
 
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val types = listOf(
-        Constants.MEMO_TYPE_GENERAL to "备忘",
         Constants.MEMO_TYPE_TODO to "待办",
-        Constants.MEMO_TYPE_CLUE to "线索",
-        Constants.MEMO_TYPE_PLOT to "剧情",
         Constants.MEMO_TYPE_REMINDER to "提醒",
-        Constants.MEMO_TYPE_RULE to "规则"
+        Constants.MEMO_TYPE_RULE to "规则笔记",
+        Constants.MEMO_TYPE_PLOT to "剧情笔记",
+        Constants.MEMO_TYPE_CLUE to "线索笔记",
+        Constants.MEMO_TYPE_HIDDEN to "暗线笔记"
     )
 
     ModalBottomSheet(
@@ -316,17 +368,76 @@ private fun EditMemoSheet(
                     singleLine = true
                 )
             }
+            // 提醒类型 - 定时通知选项
+            if (type == Constants.MEMO_TYPE_REMINDER) {
+                item {
+                    HorizontalDivider()
+                    Text("定时通知", style = MaterialTheme.typography.labelMedium)
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Switch(
+                            checked = isNotificationEnabled,
+                            onCheckedChange = { isNotificationEnabled = it }
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("开启定时提醒")
+                    }
+                }
+                if (isNotificationEnabled) {
+                    item {
+                        val dateFormat = SimpleDateFormat("yyyy年MM月dd日", Locale.getDefault())
+                        val dateText = notificationDate?.let { dateFormat.format(Date(it)) } ?: "选择日期"
+                        OutlinedCard(
+                            onClick = { showDatePicker = true },
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth().padding(12.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(Icons.Default.DateRange, null, modifier = Modifier.size(20.dp))
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(dateText, style = MaterialTheme.typography.bodyMedium)
+                            }
+                        }
+                    }
+                    item {
+                        val timeText = String.format("%02d:%02d", notificationHour, notificationMinute)
+                        OutlinedCard(
+                            onClick = { showTimePicker = true },
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth().padding(12.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(Icons.Default.Schedule, null, modifier = Modifier.size(20.dp))
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(timeText, style = MaterialTheme.typography.bodyMedium)
+                            }
+                        }
+                    }
+                }
+            }
             item {
                 Button(
                     onClick = {
+                        val notificationTime: Long? = if (type == Constants.MEMO_TYPE_REMINDER && isNotificationEnabled && notificationDate != null) {
+                            notificationDate!! + notificationHour * 3600_000L + notificationMinute * 60_000L
+                        } else null
+                        val notificationId = if (type == Constants.MEMO_TYPE_REMINDER && isNotificationEnabled) {
+                            memo.notificationId.takeIf { it != 0 } ?: (memo.memoId.hashCode() and 0x7FFFFFFF)
+                        } else memo.notificationId
                         onSave(
                             memo.copy(
                                 type = type,
                                 title = title.trim(),
                                 content = content.trim(),
-                                isHidden = isHidden,
+                                isHidden = type == Constants.MEMO_TYPE_HIDDEN || isHidden,
                                 priority = priority,
                                 tags = tags.trim(),
+                                isNotificationEnabled = type == Constants.MEMO_TYPE_REMINDER && isNotificationEnabled,
+                                notificationTime = notificationTime,
+                                notificationId = notificationId,
                                 updateTime = System.currentTimeMillis()
                             )
                         )
@@ -337,5 +448,54 @@ private fun EditMemoSheet(
                 }
             }
         }
+    }
+
+    // 日期选择对话框
+    if (showDatePicker) {
+        val datePickerState = rememberDatePickerState(
+            initialSelectedDateMillis = notificationDate ?: System.currentTimeMillis()
+        )
+        DatePickerDialog(
+            onDismissRequest = { showDatePicker = false },
+            confirmButton = {
+                TextButton(onClick = {
+                    datePickerState.selectedDateMillis?.let { notificationDate = it }
+                    showDatePicker = false
+                }) { Text("确定") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDatePicker = false }) { Text("取消") }
+            }
+        ) {
+            DatePicker(state = datePickerState)
+        }
+    }
+
+    // 时间选择对话框
+    if (showTimePicker) {
+        val timePickerState = rememberTimePickerState(
+            initialHour = notificationHour,
+            initialMinute = notificationMinute,
+            is24Hour = true
+        )
+        AlertDialog(
+            onDismissRequest = { showTimePicker = false },
+            title = { Text("选择时间") },
+            text = {
+                Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                    TimePicker(state = timePickerState)
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    notificationHour = timePickerState.hour
+                    notificationMinute = timePickerState.minute
+                    showTimePicker = false
+                }) { Text("确定") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showTimePicker = false }) { Text("取消") }
+            }
+        )
     }
 }

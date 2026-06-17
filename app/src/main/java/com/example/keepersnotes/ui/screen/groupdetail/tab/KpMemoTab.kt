@@ -13,7 +13,13 @@ import com.example.keepersnotes.data.local.entity.KpMemoEntity
 import com.example.keepersnotes.ui.component.MemoCard
 
 enum class MemoFilter(val label: String) {
-    ALL("全部"), HIDDEN("暗线笔记"), TODO("待办"), CLUE("线索"), PLOT("剧情"), GENERAL("备忘")
+    ALL("全部"),
+    TODO("待办"),
+    REMINDER("提醒"),
+    RULE("规则笔记"),
+    PLOT("剧情笔记"),
+    CLUE("线索笔记"),
+    HIDDEN("暗线笔记")
 }
 
 @Composable
@@ -22,17 +28,24 @@ fun KpMemoTab(
     pendingTodos: List<KpMemoEntity>,
     onToggleCompleted: (String) -> Unit,
     onCreateMemo: () -> Unit = {},
-    onMemoClick: (String) -> Unit = {}
+    onMemoClick: (String) -> Unit = {},
+    filterIndex: Int = 0,
+    onFilterChanged: (Int) -> Unit = {}
 ) {
-    var selectedFilter by remember { mutableStateOf(MemoFilter.ALL) }
+    var selectedFilter by remember { mutableStateOf(MemoFilter.entries[filterIndex]) }
+
+    LaunchedEffect(filterIndex) {
+        selectedFilter = MemoFilter.entries[filterIndex]
+    }
 
     val filteredMemos = when (selectedFilter) {
         MemoFilter.ALL -> memos
-        MemoFilter.HIDDEN -> memos.filter { it.isHidden }
         MemoFilter.TODO -> memos.filter { it.type == "todo" }
-        MemoFilter.CLUE -> memos.filter { it.type == "clue" }
+        MemoFilter.REMINDER -> memos.filter { it.type == "reminder" }
+        MemoFilter.RULE -> memos.filter { it.type == "rule" }
         MemoFilter.PLOT -> memos.filter { it.type == "plot" }
-        MemoFilter.GENERAL -> memos.filter { it.type == "general" || it.type == "reminder" || it.type == "rule" }
+        MemoFilter.CLUE -> memos.filter { it.type == "clue" }
+        MemoFilter.HIDDEN -> memos.filter { it.type == "hidden" || it.isHidden }
     }
 
     Box(modifier = Modifier.fillMaxSize()) {
@@ -45,7 +58,10 @@ fun KpMemoTab(
                 MemoFilter.entries.forEach { filter ->
                     Tab(
                         selected = selectedFilter == filter,
-                        onClick = { selectedFilter = filter },
+                        onClick = {
+                            selectedFilter = filter
+                            onFilterChanged(MemoFilter.entries.indexOf(filter))
+                        },
                         text = { Text(filter.label) }
                     )
                 }

@@ -16,6 +16,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.keepersnotes.data.local.entity.NpcEntity
 import com.example.keepersnotes.ui.component.CompactTopBar
 import com.example.keepersnotes.ui.component.NpcStatusBadge
+import com.example.keepersnotes.ui.screen.modulelibrary.Gender
 import com.example.keepersnotes.util.Constants
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -23,10 +24,9 @@ import com.example.keepersnotes.util.Constants
 fun NpcDetailScreen(
     npcId: String,
     onBack: () -> Unit,
-    viewModel: GroupDetailViewModel = hiltViewModel()
+    viewModel: NpcDetailViewModel = hiltViewModel()
 ) {
-    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    val npc = uiState.npcs.find { it.npcId == npcId }
+    val npc by viewModel.npc.collectAsStateWithLifecycle()
     var showEditSheet by remember { mutableStateOf(false) }
 
     Scaffold(
@@ -47,7 +47,8 @@ fun NpcDetailScreen(
             )
         }
     ) { padding ->
-        if (npc == null) {
+        val currentNpc = npc
+        if (currentNpc == null) {
             Box(modifier = Modifier.fillMaxSize().padding(padding)) {
                 Text("加载中...", modifier = Modifier.padding(16.dp))
             }
@@ -67,61 +68,64 @@ fun NpcDetailScreen(
                 Column(modifier = Modifier.padding(16.dp)) {
                     Row(modifier = Modifier.fillMaxWidth()) {
                         Text(
-                            text = npc.name,
+                            text = currentNpc.name,
                             style = MaterialTheme.typography.headlineSmall,
                             modifier = Modifier.weight(1f)
                         )
-                        NpcStatusBadge(status = npc.status)
+                        NpcStatusBadge(status = currentNpc.status)
                     }
-                    if (npc.alias.isNotBlank()) {
-                        Text("别名: ${npc.alias}", style = MaterialTheme.typography.bodyMedium)
+                    if (currentNpc.alias.isNotBlank()) {
+                        Text("别名: ${currentNpc.alias}", style = MaterialTheme.typography.bodyMedium)
                     }
-                    if (npc.occupation.isNotBlank()) {
-                        Text("职业: ${npc.occupation}", style = MaterialTheme.typography.bodyMedium)
+                    if (currentNpc.occupation.isNotBlank()) {
+                        Text("职业: ${currentNpc.occupation}", style = MaterialTheme.typography.bodyMedium)
+                    }
+                    if (currentNpc.gender.isNotBlank()) {
+                        Text("性别: ${Gender.fromKey(currentNpc.gender)?.label ?: currentNpc.gender}", style = MaterialTheme.typography.bodyMedium)
                     }
                 }
             }
 
             // Description
-            if (npc.description.isNotBlank()) {
+            if (currentNpc.description.isNotBlank()) {
                 Card(modifier = Modifier.fillMaxWidth()) {
                     Column(modifier = Modifier.padding(16.dp)) {
                         Text("描述", style = MaterialTheme.typography.titleSmall)
                         Spacer(modifier = Modifier.height(4.dp))
-                        Text(npc.description, style = MaterialTheme.typography.bodyMedium)
+                        Text(currentNpc.description, style = MaterialTheme.typography.bodyMedium)
                     }
                 }
             }
 
             // Hidden info (KP only)
-            if (npc.truePurpose.isNotBlank()) {
+            if (currentNpc.truePurpose.isNotBlank()) {
                 Card(modifier = Modifier.fillMaxWidth()) {
                     Column(modifier = Modifier.padding(16.dp)) {
                         Text("真实目的（暗线）", style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.error)
                         Spacer(modifier = Modifier.height(4.dp))
-                        Text(npc.truePurpose, style = MaterialTheme.typography.bodyMedium)
+                        Text(currentNpc.truePurpose, style = MaterialTheme.typography.bodyMedium)
                     }
                 }
             }
 
             // Relationship
-            if (npc.relationshipToPc.isNotBlank()) {
+            if (currentNpc.relationshipToPc.isNotBlank()) {
                 Card(modifier = Modifier.fillMaxWidth()) {
                     Column(modifier = Modifier.padding(16.dp)) {
                         Text("与PC关系", style = MaterialTheme.typography.titleSmall)
                         Spacer(modifier = Modifier.height(4.dp))
-                        Text(npc.relationshipToPc, style = MaterialTheme.typography.bodyMedium)
+                        Text(currentNpc.relationshipToPc, style = MaterialTheme.typography.bodyMedium)
                     }
                 }
             }
 
             // KP Notes
-            if (npc.kpNotes.isNotBlank()) {
+            if (currentNpc.kpNotes.isNotBlank()) {
                 Card(modifier = Modifier.fillMaxWidth()) {
                     Column(modifier = Modifier.padding(16.dp)) {
                         Text("KP备注", style = MaterialTheme.typography.titleSmall)
                         Spacer(modifier = Modifier.height(4.dp))
-                        Text(npc.kpNotes, style = MaterialTheme.typography.bodyMedium)
+                        Text(currentNpc.kpNotes, style = MaterialTheme.typography.bodyMedium)
                     }
                 }
             }
@@ -129,9 +133,10 @@ fun NpcDetailScreen(
     }
 
     // Edit NPC bottom sheet
-    if (showEditSheet && npc != null) {
+    val editNpc = npc
+    if (showEditSheet && editNpc != null) {
         EditNpcSheet(
-            npc = npc,
+            npc = editNpc,
             onDismiss = { showEditSheet = false },
             onSave = { updatedNpc ->
                 viewModel.updateNpc(updatedNpc)
@@ -151,6 +156,8 @@ private fun EditNpcSheet(
     var name by remember { mutableStateOf(npc.name) }
     var alias by remember { mutableStateOf(npc.alias) }
     var occupation by remember { mutableStateOf(npc.occupation) }
+    var gender by remember { mutableStateOf(npc.gender) }
+    var genderExpanded by remember { mutableStateOf(false) }
     var description by remember { mutableStateOf(npc.description) }
     var truePurpose by remember { mutableStateOf(npc.truePurpose) }
     var relationshipToPc by remember { mutableStateOf(npc.relationshipToPc) }
@@ -199,6 +206,32 @@ private fun EditNpcSheet(
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true
                 )
+            }
+            item {
+                ExposedDropdownMenuBox(
+                    expanded = genderExpanded,
+                    onExpandedChange = { genderExpanded = it }
+                ) {
+                    OutlinedTextField(
+                        value = Gender.fromKey(gender)?.label ?: "",
+                        onValueChange = {},
+                        readOnly = true,
+                        label = { Text("性别") },
+                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = genderExpanded) },
+                        modifier = Modifier.fillMaxWidth().menuAnchor()
+                    )
+                    ExposedDropdownMenu(
+                        expanded = genderExpanded,
+                        onDismissRequest = { genderExpanded = false }
+                    ) {
+                        Gender.entries.forEach { g ->
+                            DropdownMenuItem(
+                                text = { Text(g.label) },
+                                onClick = { gender = g.key; genderExpanded = false }
+                            )
+                        }
+                    }
+                }
             }
             item {
                 Text("状态", style = MaterialTheme.typography.labelMedium)
@@ -261,6 +294,7 @@ private fun EditNpcSheet(
                                 name = name.trim(),
                                 alias = alias.trim(),
                                 occupation = occupation.trim(),
+                                gender = gender,
                                 description = description.trim(),
                                 truePurpose = truePurpose.trim(),
                                 relationshipToPc = relationshipToPc.trim(),

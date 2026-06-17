@@ -19,8 +19,7 @@ class BackupManager @Inject constructor(
     private val sessionDao: SessionDao,
     private val kpMemoDao: KpMemoDao,
     private val archiveDao: ArchiveDao,
-    private val imageDao: ImageDao,
-    private val imageGroupDao: ImageGroupDao
+    private val imageDao: ImageDao
 ) {
     companion object {
         const val BACKUP_VERSION = 2
@@ -38,7 +37,6 @@ class BackupManager @Inject constructor(
             put("kpMemos", kpMemoDao.getAllMemos().first().toJsonArray { it.toJson() })
             put("archives", archiveDao.getAll().first().toJsonArray { it.toJson() })
             put("images", imageDao.getAll().first().toJsonArray { it.toJson() })
-            put("imageGroups", imageGroupDao.getAll().first().toJsonArray { it.toJson() })
         }
         outputStream.write(json.toString(2).toByteArray(Charsets.UTF_8))
     }
@@ -49,7 +47,6 @@ class BackupManager @Inject constructor(
 
         // Clear existing data (order matters for foreign keys)
         imageDao.deleteAll()
-        imageGroupDao.deleteAll()
         archiveDao.deleteAll()
         kpMemoDao.deleteAll()
         sessionDao.deleteAll()
@@ -76,9 +73,6 @@ class BackupManager @Inject constructor(
         }
         json.getJSONArray("kpMemos").let { arr ->
             for (i in 0 until arr.length()) kpMemoDao.insertMemo(arr.getJSONObject(i).toKpMemoEntity())
-        }
-        json.optJSONArray("imageGroups")?.let { arr ->
-            for (i in 0 until arr.length()) imageGroupDao.insert(arr.getJSONObject(i).toImageGroupEntity())
         }
         json.optJSONArray("archives")?.let { arr ->
             for (i in 0 until arr.length()) archiveDao.insert(arr.getJSONObject(i).toArchiveEntity())
@@ -178,15 +172,6 @@ class BackupManager @Inject constructor(
         put("filePath", filePath)
         put("originalFileName", originalFileName)
         putOpt("imageGroupId", imageGroupId)
-        put("sortOrder", sortOrder)
-        put("createTime", createTime)
-    }
-
-    private fun ImageGroupEntity.toJson() = JSONObject().apply {
-        put("imageGroupId", imageGroupId)
-        put("collectionId", collectionId)
-        put("name", name)
-        put("description", description)
         put("sortOrder", sortOrder)
         put("createTime", createTime)
     }
@@ -310,15 +295,6 @@ class BackupManager @Inject constructor(
         filePath = getString("filePath"),
         originalFileName = optString("originalFileName", ""),
         imageGroupId = optStringOrNull("imageGroupId"),
-        sortOrder = optInt("sortOrder", 0),
-        createTime = optLong("createTime", 0)
-    )
-
-    private fun JSONObject.toImageGroupEntity() = ImageGroupEntity(
-        imageGroupId = getString("imageGroupId"),
-        collectionId = getString("collectionId"),
-        name = optString("name", ""),
-        description = optString("description", ""),
         sortOrder = optInt("sortOrder", 0),
         createTime = optLong("createTime", 0)
     )

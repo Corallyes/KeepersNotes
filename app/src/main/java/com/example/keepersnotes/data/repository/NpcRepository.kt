@@ -16,6 +16,8 @@ class NpcRepository @Inject constructor(
 
     fun getNpcById(npcId: String): Flow<NpcEntity?> = npcDao.getNpcById(npcId)
 
+    suspend fun getNpcByIdOnce(npcId: String): NpcEntity? = npcDao.getNpcByIdOnce(npcId)
+
     fun searchNpcs(groupId: String, query: String): Flow<List<NpcEntity>> =
         npcDao.searchNpcs(groupId, query)
 
@@ -23,7 +25,8 @@ class NpcRepository @Inject constructor(
         groupId: String,
         name: String,
         alias: String = "",
-        occupation: String = ""
+        occupation: String = "",
+        gender: String = ""
     ): String {
         val npcId = UUID.randomUUID().toString()
         npcDao.insertNpc(
@@ -32,7 +35,8 @@ class NpcRepository @Inject constructor(
                 groupId = groupId,
                 name = name,
                 alias = alias,
-                occupation = occupation
+                occupation = occupation,
+                gender = gender
             )
         )
         return npcId

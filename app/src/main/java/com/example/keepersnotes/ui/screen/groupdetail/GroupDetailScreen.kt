@@ -1,9 +1,12 @@
 package com.example.keepersnotes.ui.screen.groupdetail
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.AccountTree
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -12,8 +15,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.example.keepersnotes.data.local.entity.GroupEntity
 import com.example.keepersnotes.ui.component.CompactTopBar
 import com.example.keepersnotes.ui.screen.groupdetail.tab.*
+import com.example.keepersnotes.util.Constants
 import com.example.keepersnotes.util.LocalizedStrings
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -35,14 +40,15 @@ fun GroupDetailScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val tabs = listOf(
         LocalizedStrings.groupOverview,
-        LocalizedStrings.groupPcLibrary,
-        LocalizedStrings.groupNpcArchive,
-        LocalizedStrings.groupModuleContent,
-        LocalizedStrings.groupSessionRecord,
+        "人物",
         LocalizedStrings.groupKpMemo,
-        "关系网"
+        LocalizedStrings.groupSessionRecord
     )
-    var selectedTab by remember { mutableIntStateOf(0) }
+    var selectedTab by remember { mutableIntStateOf(viewModel.selectedTab) }
+    var characterSubTab by remember { mutableIntStateOf(viewModel.characterSubTab) }
+    var showMenu by remember { mutableStateOf(false) }
+    var showEditSheet by remember { mutableStateOf(false) }
+    var showDeleteDialog by remember { mutableStateOf(false) }
 
     Scaffold(
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
@@ -52,6 +58,26 @@ fun GroupDetailScreen(
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = LocalizedStrings.back)
+                    }
+                },
+                actions = {
+                    Box {
+                        IconButton(onClick = { showMenu = true }) {
+                            Icon(Icons.Default.MoreVert, contentDescription = "更多")
+                        }
+                        DropdownMenu(
+                            expanded = showMenu,
+                            onDismissRequest = { showMenu = false }
+                        ) {
+                            DropdownMenuItem(
+                                text = { Text("编辑") },
+                                onClick = { showMenu = false; showEditSheet = true }
+                            )
+                            DropdownMenuItem(
+                                text = { Text("删除", color = MaterialTheme.colorScheme.error) },
+                                onClick = { showMenu = false; showDeleteDialog = true }
+                            )
+                        }
                     }
                 }
             )
@@ -65,7 +91,7 @@ fun GroupDetailScreen(
                 tabs.forEachIndexed { index, title ->
                     Tab(
                         selected = selectedTab == index,
-                        onClick = { selectedTab = index },
+                        onClick = { selectedTab = index; viewModel.selectedTab = index },
                         text = { Text(title, maxLines = 1) }
                     )
                 }
@@ -76,35 +102,372 @@ fun GroupDetailScreen(
                     uiState = uiState,
                     onStatusChange = viewModel::updateGroupStatus
                 )
-                1 -> PcLibraryTab(
-                    pcs = uiState.pcs,
-                    onPcClick = onPcClick,
-                    onCreatePc = onCreatePc
-                )
-                2 -> NpcArchiveTab(
-                    npcs = uiState.npcs,
-                    onNpcClick = onNpcClick,
-                    onCreateNpc = onCreateNpc
-                )
-                3 -> ModuleContentTab(module = uiState.module)
-                4 -> SessionRecordTab(
-                    sessions = uiState.sessions,
-                    onSessionClick = onSessionClick,
-                    onCreateSession = onCreateSession
-                )
-                5 -> KpMemoTab(
+                1 -> {
+                    val subTabs = listOf(
+                        LocalizedStrings.groupPcLibrary,
+                        LocalizedStrings.groupNpcArchive,
+                        "人物关系"
+                    )
+                    Column {
+                        TabRow(selectedTabIndex = characterSubTab) {
+                            subTabs.forEachIndexed { index, title ->
+                                Tab(
+                                    selected = characterSubTab == index,
+                                    onClick = { characterSubTab = index; viewModel.characterSubTab = index },
+                                    text = { Text(title, maxLines = 1) }
+                                )
+                            }
+                        }
+                        when (characterSubTab) {
+                            0 -> PcLibraryTab(
+                                pcs = uiState.pcs,
+                                onPcClick = onPcClick,
+                                onCreatePc = onCreatePc
+                            )
+                            1 -> NpcArchiveTab(
+                                npcs = uiState.npcs,
+                                onNpcClick = onNpcClick,
+                                onCreateNpc = onCreateNpc
+                            )
+                            2 -> GroupRelationshipTab(
+                                relationshipCount = uiState.relationships.size,
+                                onNavigateToRelationship = onNavigateToRelationship
+                            )
+                        }
+                    }
+                }
+                2 -> KpMemoTab(
                     memos = uiState.memos,
                     pendingTodos = uiState.pendingTodos,
                     onToggleCompleted = viewModel::toggleMemoCompleted,
                     onCreateMemo = onCreateMemo,
-                    onMemoClick = onMemoClick
+                    onMemoClick = onMemoClick,
+                    filterIndex = viewModel.memoFilterIndex,
+                    onFilterChanged = { viewModel.memoFilterIndex = it }
                 )
-                6 -> GroupRelationshipTab(
-                    relationshipCount = uiState.relationships.size,
-                    onNavigateToRelationship = onNavigateToRelationship
+                3 -> SessionRecordTab(
+                    sessions = uiState.sessions,
+                    onSessionClick = onSessionClick,
+                    onCreateSession = onCreateSession
                 )
             }
         }
+    }
+
+    // Edit group bottom sheet
+    if (showEditSheet && uiState.group != null) {
+        EditGroupSheet(
+            group = uiState.group!!,
+            onDismiss = { showEditSheet = false },
+            onSave = { updatedGroup ->
+                viewModel.updateGroup(updatedGroup)
+                showEditSheet = false
+            }
+        )
+    }
+
+    // Delete confirmation dialog
+    if (showDeleteDialog) {
+        AlertDialog(
+            onDismissRequest = { showDeleteDialog = false },
+            title = { Text("删除团") },
+            text = { Text("确定要删除这个团吗？团内所有PC、NPC、Session记录等数据都会被删除，此操作不可撤销。") },
+            confirmButton = {
+                TextButton(onClick = {
+                    viewModel.deleteGroup()
+                    showDeleteDialog = false
+                    onBack()
+                }) {
+                    Text("删除", color = MaterialTheme.colorScheme.error)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeleteDialog = false }) { Text("取消") }
+            }
+        )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun EditGroupSheet(
+    group: GroupEntity,
+    onDismiss: () -> Unit,
+    onSave: (GroupEntity) -> Unit
+) {
+    var groupName by remember { mutableStateOf(group.groupName) }
+    var moduleName by remember { mutableStateOf(group.moduleName) }
+    var system by remember { mutableStateOf(group.system) }
+    var gameFormat by remember { mutableStateOf(group.gameFormat) }
+    var scale by remember { mutableStateOf(group.scale) }
+    var notes by remember { mutableStateOf(group.notes) }
+    var status by remember { mutableStateOf(group.status) }
+    var startTime by remember { mutableStateOf(group.startTime) }
+    var expectedEndTime by remember { mutableStateOf(group.expectedEndTime) }
+    var defaultSessionTime by remember { mutableStateOf(group.defaultSessionTime) }
+
+    val dateFormat = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.getDefault())
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+
+    // DatePicker states
+    var showStartDatePicker by remember { mutableStateOf(false) }
+    var showEndDatePicker by remember { mutableStateOf(false) }
+    var showTimePicker by remember { mutableStateOf(false) }
+    var showTimeChangeConfirm by remember { mutableStateOf(false) }
+    var pendingSaveGroup by remember { mutableStateOf<GroupEntity?>(null) }
+
+    val timeChanged = group.startTime != startTime ||
+            group.expectedEndTime != expectedEndTime ||
+            group.defaultSessionTime != defaultSessionTime.trim()
+
+    val startInteractionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() }
+    val endInteractionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() }
+    val timeInteractionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() }
+
+    LaunchedEffect(startInteractionSource) {
+        startInteractionSource.interactions.collect { interaction ->
+            if (interaction is androidx.compose.foundation.interaction.PressInteraction.Release) showStartDatePicker = true
+        }
+    }
+    LaunchedEffect(endInteractionSource) {
+        endInteractionSource.interactions.collect { interaction ->
+            if (interaction is androidx.compose.foundation.interaction.PressInteraction.Release) showEndDatePicker = true
+        }
+    }
+    LaunchedEffect(timeInteractionSource) {
+        timeInteractionSource.interactions.collect { interaction ->
+            if (interaction is androidx.compose.foundation.interaction.PressInteraction.Release) showTimePicker = true
+        }
+    }
+
+    val timeParts = defaultSessionTime.split(":")
+    val initHour = timeParts.getOrNull(0)?.toIntOrNull() ?: 14
+    val initMinute = timeParts.getOrNull(1)?.toIntOrNull() ?: 0
+    val timePickerState = rememberTimePickerState(
+        initialHour = initHour,
+        initialMinute = initMinute,
+        is24Hour = true
+    )
+
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = sheetState
+    ) {
+        LazyColumn(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+            contentPadding = PaddingValues(bottom = 32.dp)
+        ) {
+            item { Text("编辑团", style = MaterialTheme.typography.titleLarge) }
+            item {
+                OutlinedTextField(
+                    value = groupName,
+                    onValueChange = { groupName = it },
+                    label = { Text("团名称") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true
+                )
+            }
+            item {
+                OutlinedTextField(
+                    value = moduleName,
+                    onValueChange = { moduleName = it },
+                    label = { Text("模组名称") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true
+                )
+            }
+            item {
+                Text("游戏系统", style = MaterialTheme.typography.labelMedium)
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    listOf(Constants.SYSTEM_COC7, Constants.SYSTEM_DND5E).forEach { s ->
+                        FilterChip(
+                            selected = system == s,
+                            onClick = { system = s },
+                            label = { Text(s) }
+                        )
+                    }
+                }
+            }
+            item {
+                OutlinedTextField(
+                    value = gameFormat,
+                    onValueChange = { gameFormat = it },
+                    label = { Text("开团方式") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true
+                )
+            }
+            item {
+                OutlinedTextField(
+                    value = scale,
+                    onValueChange = { scale = it },
+                    label = { Text("规模") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true
+                )
+            }
+            // 开团时间 & 预计结束
+            item {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    OutlinedTextField(
+                        value = startTime?.let { dateFormat.format(java.util.Date(it)) } ?: "",
+                        onValueChange = {},
+                        label = { Text("开团时间") },
+                        placeholder = { Text("点击选择") },
+                        readOnly = true,
+                        interactionSource = startInteractionSource,
+                        modifier = Modifier.weight(1f)
+                    )
+                    OutlinedTextField(
+                        value = expectedEndTime?.let { dateFormat.format(java.util.Date(it)) } ?: "",
+                        onValueChange = {},
+                        label = { Text("预计结束") },
+                        placeholder = { Text("点击选择") },
+                        readOnly = true,
+                        interactionSource = endInteractionSource,
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+            }
+            // 默认开团时间
+            item {
+                OutlinedTextField(
+                    value = defaultSessionTime,
+                    onValueChange = {},
+                    label = { Text("默认开团时间") },
+                    placeholder = { Text("点击选择时间") },
+                    readOnly = true,
+                    interactionSource = timeInteractionSource,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+            item {
+                Text("状态", style = MaterialTheme.typography.labelMedium)
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    listOf(
+                        Constants.GROUP_STATUS_ACTIVE to "进行中",
+                        Constants.GROUP_STATUS_PAUSED to "暂停",
+                        Constants.GROUP_STATUS_COMPLETED to "已完结"
+                    ).forEach { (value, label) ->
+                        FilterChip(
+                            selected = status == value,
+                            onClick = { status = value },
+                            label = { Text(label) }
+                        )
+                    }
+                }
+            }
+            item {
+                OutlinedTextField(
+                    value = notes,
+                    onValueChange = { notes = it },
+                    label = { Text("备注") },
+                    modifier = Modifier.fillMaxWidth(),
+                    minLines = 3
+                )
+            }
+            item {
+                Button(
+                    onClick = {
+                        val updatedGroup = group.copy(
+                            groupName = groupName.trim(),
+                            moduleName = moduleName.trim(),
+                            system = system,
+                            gameFormat = gameFormat.trim(),
+                            scale = scale.trim(),
+                            status = status,
+                            notes = notes.trim(),
+                            startTime = startTime,
+                            expectedEndTime = expectedEndTime,
+                            defaultSessionTime = defaultSessionTime.trim()
+                        )
+                        if (timeChanged) {
+                            pendingSaveGroup = updatedGroup
+                            showTimeChangeConfirm = true
+                        } else {
+                            onSave(updatedGroup)
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                ) { Text("保存") }
+            }
+        }
+    }
+
+    // Date/Time pickers
+    if (showStartDatePicker) {
+        val datePickerState = rememberDatePickerState(initialSelectedDateMillis = startTime)
+        DatePickerDialog(
+            onDismissRequest = { showStartDatePicker = false },
+            confirmButton = {
+                TextButton(onClick = {
+                    startTime = datePickerState.selectedDateMillis
+                    showStartDatePicker = false
+                }) { Text("确定") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showStartDatePicker = false }) { Text("取消") }
+            }
+        ) { DatePicker(state = datePickerState) }
+    }
+    if (showEndDatePicker) {
+        val datePickerState = rememberDatePickerState(initialSelectedDateMillis = expectedEndTime)
+        DatePickerDialog(
+            onDismissRequest = { showEndDatePicker = false },
+            confirmButton = {
+                TextButton(onClick = {
+                    expectedEndTime = datePickerState.selectedDateMillis
+                    showEndDatePicker = false
+                }) { Text("确定") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showEndDatePicker = false }) { Text("取消") }
+            }
+        ) { DatePicker(state = datePickerState) }
+    }
+    if (showTimePicker) {
+        AlertDialog(
+            onDismissRequest = { showTimePicker = false },
+            title = { Text("选择默认开团时间") },
+            text = { TimePicker(state = timePickerState) },
+            confirmButton = {
+                TextButton(onClick = {
+                    val h = timePickerState.hour.toString().padStart(2, '0')
+                    val m = timePickerState.minute.toString().padStart(2, '0')
+                    defaultSessionTime = "$h:$m"
+                    showTimePicker = false
+                }) { Text("确定") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showTimePicker = false }) { Text("取消") }
+            }
+        )
+    }
+
+    // 时间变更确认弹窗
+    if (showTimeChangeConfirm) {
+        AlertDialog(
+            onDismissRequest = { showTimeChangeConfirm = false },
+            title = { Text("日程将被覆盖") },
+            text = { Text("修改了开团时间、预计结束或默认开团时间，该团在日历上的日程将被重置为当前设置。") },
+            confirmButton = {
+                TextButton(onClick = {
+                    pendingSaveGroup?.let { onSave(it) }
+                    showTimeChangeConfirm = false
+                    pendingSaveGroup = null
+                }) { Text("确定") }
+            },
+            dismissButton = {
+                TextButton(onClick = {
+                    showTimeChangeConfirm = false
+                    pendingSaveGroup = null
+                }) { Text("取消") }
+            }
+        )
     }
 }
 

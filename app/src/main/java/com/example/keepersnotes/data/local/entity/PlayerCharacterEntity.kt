@@ -22,6 +22,7 @@ data class PlayerCharacterEntity(
     val inventoryJson: String = "[]",   // JSON blob for inventory
     val kpNotes: String = "",
     val status: String = "normal", // normal, wounded, insane, dead
+    val gender: String = "",  // male, female, alien, other
     val portraitUri: String? = null,
     val createTime: Long = System.currentTimeMillis()
 )

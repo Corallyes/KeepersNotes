@@ -18,6 +18,7 @@ data class CreateNpcUiState(
     val occupation: String = "",
     val description: String = "",
     val truePurpose: String = "",
+    val gender: String = "",
     val nameError: String? = null,
     val isSubmitting: Boolean = false,
     val createdNpcId: String? = null
@@ -54,6 +55,10 @@ class CreateNpcViewModel @Inject constructor(
         _uiState.update { it.copy(truePurpose = truePurpose) }
     }
 
+    fun updateGender(value: String) {
+        _uiState.update { it.copy(gender = value) }
+    }
+
     fun submit() {
         val state = _uiState.value
         if (state.name.isBlank()) {
@@ -66,7 +71,8 @@ class CreateNpcViewModel @Inject constructor(
                 groupId = groupId,
                 name = state.name.trim(),
                 alias = state.alias.trim(),
-                occupation = state.occupation.trim()
+                occupation = state.occupation.trim(),
+                gender = state.gender
             )
             // Update additional fields
             npcRepository.getNpcById(npcId).collect { npc ->

@@ -28,6 +28,7 @@ object LocalizedStrings {
     val back get() = if (isEnglishSync()) "Back" else "返回"
     val search get() = if (isEnglishSync()) "Search" else "搜索"
     val loading get() = if (isEnglishSync()) "Loading..." else "加载中..."
+    val importing get() = if (isEnglishSync()) "Importing, please wait..." else "正在导入，请稍候..."
 
     // ==================== 底部导航 ====================
     val navHome get() = if (isEnglishSync()) "Home" else "首页"
@@ -118,17 +119,47 @@ object LocalizedStrings {
     else
         "Session记录用于记录每次跑团的内容，包括摘要、重要事件、发现的线索等。方便回顾剧情和准备下次跑团。"
 
-    val faq7Q get() = if (isEnglishSync()) "What is the Relationship Network?" else "关系网是什么？"
+    val faq7Q get() = if (isEnglishSync()) "What is the Character Relationship Network?" else "人物关系网是什么？"
     val faq7A get() = if (isEnglishSync())
-        "The Relationship Network visualizes connections between PCs and NPCs. You can create associations between characters in the NPC archive, helping the Keeper manage complex character relationships."
+        "The Character Relationship Network visualizes connections between characters. In module settings, you can define NPC relationships. In group details, you can manage PC and NPC relationships, helping the Keeper track complex character connections."
     else
-        "关系网用于可视化展示PC、NPC之间的关系。在NPC档案中可以为角色之间建立关联，帮助KP理清复杂的人物关系，避免带团时混淆。"
+        "人物关系网用于可视化展示人物之间的关系。在模组设置中可以定义NPC之间的关系，在团详情中可以管理PC和NPC之间的关系，帮助KP理清复杂的人物关系，避免带团时混淆。"
 
     val faq8Q get() = if (isEnglishSync()) "What is the difference between Module and Group?" else "模组和团有什么区别？"
     val faq8A get() = if (isEnglishSync())
         "A Module is a scenario resource containing plot, NPCs, clues, and other reusable content. A Group is a specific game instance linked to a particular module, PCs, and session records. The same module can be used for multiple groups, each with different progress and experiences."
     else
         "模组是跑团的剧本素材，包含剧情、NPC、线索等通用内容，可以被多个团复用。团是具体的跑团实例，关联了特定的模组、PC和Session记录。同一个模组可以开多个团，每个团的进度和体验各不相同。"
+
+    val faq9Q get() = if (isEnglishSync()) "Why does the home tab stop working after using quick actions?" else "从首页快速操作后，底部导航栏的首页失效了？"
+    val faq9A get() = if (isEnglishSync())
+        "This is normal behavior. Quick actions (import module, new group, add PC) will navigate to the corresponding page after completion. Just press the back button to return to the normal home page."
+    else
+        "这是正常行为。首页的快速操作（导入模组、新建团、新增PC）执行完成后会自动跳转到对应的页面，此时底部导航栏的「首页」看起来像是失效了。只需按一下系统返回键即可回到正常的首页。"
+
+    val faq10Q get() = if (isEnglishSync()) "How do clues work?" else "线索功能怎么用？"
+    val faq10A get() = if (isEnglishSync())
+        "Clues are managed in two layers: 1) Module level: go to Module Settings → Clues to add default clues for the module. 2) Group level: when creating a new group and selecting a module, the module's default clues are automatically inherited as KP memos. You can also manually add, edit, or delete clues in the group's KP Memos tab."
+    else
+        "线索分为两层管理：1）模组层：进入模组设置 → 线索，可以为模组添加默认线索，方便KP管理通用线索。2）团层：新建团时选择模组后，模组中设置的默认线索会自动继承为团的KP备忘录（类型为「线索」）。在团详情的KP备忘录标签页中，也可以手动新增、编辑或删除线索。"
+
+    val faq11Q get() = if (isEnglishSync()) "What memo types are available?" else "备忘录有哪些类型？"
+    val faq11A get() = if (isEnglishSync())
+        "KP Memos support 6 types: Todo (checklist), Reminder (with optional timed notification), Rule Notes, Plot Notes, Clue Notes, and Secret Notes (hidden from players). Use the filter tabs to quickly find specific types."
+    else
+        "KP备忘录支持6种类型：待办（可勾选的清单）、提醒（可设置定时通知）、规则笔记、剧情笔记、线索笔记、暗线笔记（标记为暗线后仅KP可见）。在KP备忘录页面顶部可以通过筛选标签快速查看特定类型的备忘。"
+
+    val faq12Q get() = if (isEnglishSync()) "How to use the calendar?" else "日历功能怎么用？"
+    val faq12A get() = if (isEnglishSync())
+        "The home page calendar shows all scheduled events. When creating a group, you can set the start time, expected end time, and default session time. The system will automatically create calendar events for each day in the range. You can also manually add, edit, or delete events."
+    else
+        "首页日历会显示所有已安排的日程。新建团时可以设置开始时间、预计结束时间和默认开团时间，系统会自动为时间范围内的每一天创建日历事件。也可以在日历中手动新增、编辑或删除日程。"
+
+    val faq13Q get() = if (isEnglishSync()) "What file formats are supported for import?" else "支持导入哪些文件格式？"
+    val faq13A get() = if (isEnglishSync())
+        "Supported document formats: .txt, .docx, .md. Supported archive formats: .zip, .rar, .7z (containing documents and images). The system auto-detects encoding for text files and recognizes chapter structure in Word documents."
+    else
+        "支持的文档格式：.txt、.docx、.md。支持的压缩包格式：.zip、.rar、.7z（可包含文档和图片）。文本文件会自动检测编码（UTF-8/GBK/GB18030），Word文档会智能识别章节结构。"
 
     // ==================== 我的 ====================
     val profileTitle get() = if (isEnglishSync()) "Me" else "我的"
@@ -148,8 +179,8 @@ object LocalizedStrings {
     val homeDataOverview get() = if (isEnglishSync()) "Data Overview" else "数据概览"
     val homeCalendar get() = if (isEnglishSync()) "Schedule Calendar" else "日程日历"
     val homeDaySchedule get() = if (isEnglishSync()) "Day Schedule" else "当天日程"
-    val homeUpcoming get() = if (isEnglishSync()) "Upcoming Sessions" else "近期开团计划"
-    val homeNoUpcoming get() = if (isEnglishSync()) "No upcoming sessions" else "暂无近期开团计划"
+    val homeUpcoming get() = if (isEnglishSync()) "Today's Sessions" else "今日开团计划"
+    val homeNoUpcoming get() = if (isEnglishSync()) "No sessions today" else "今日暂无开团计划"
     val homeQuickActions get() = if (isEnglishSync()) "Quick Actions" else "快速操作"
     val homeActiveGroups get() = if (isEnglishSync()) "Active Groups" else "进行中的团"
     val homeNoGroups get() = if (isEnglishSync()) "No groups yet. Click + to start" else "还没有创建任何团，点击右下角 + 开始吧"
@@ -183,9 +214,9 @@ object LocalizedStrings {
     val groupNoGroupsPaused get() = if (isEnglishSync()) "No paused groups" else "没有暂停的团"
     val groupNoGroupsCompleted get() = if (isEnglishSync()) "No completed groups" else "没有已完结的团"
     val groupDetailTitle get() = if (isEnglishSync()) "Group Detail" else "团详情"
-    val groupRelationshipTitle get() = if (isEnglishSync()) "Group Relationship Map" else "团关系图谱"
+    val groupRelationshipTitle get() = if (isEnglishSync()) "Character Relationship Map" else "人物关系图谱"
     val groupRelationshipCount get() = if (isEnglishSync()) " relationships" else "条关系"
-    val groupRelationshipView get() = if (isEnglishSync()) "View Relationship Map" else "查看关系图谱"
+    val groupRelationshipView get() = if (isEnglishSync()) "View Relationship Map" else "查看人物关系图"
     val groupRelationshipPrefix get() = if (isEnglishSync()) "Currently has " else "当前有 "
 
     // ==================== 模组库 ====================
@@ -195,6 +226,7 @@ object LocalizedStrings {
     val modulePublic get() = if (isEnglishSync()) "Public" else "公共模组"
     val moduleSearchPlaceholder get() = if (isEnglishSync()) "Search modules" else "搜索卷宗"
     val moduleImportZip get() = if (isEnglishSync()) "Import ZIP Module" else "导入 ZIP 卷宗"
+    val moduleImportArchive get() = if (isEnglishSync()) "Import Archive (ZIP/RAR/7Z)" else "导入压缩包 (ZIP/RAR/7Z)"
     val moduleImportSingle get() = if (isEnglishSync()) "Import Single Document" else "导入单个文档"
     val moduleImportTitle get() = if (isEnglishSync()) "Import Module" else "导入卷宗"
     val moduleNameRequired get() = if (isEnglishSync()) "Module Name *" else "卷宗名称 *"
@@ -202,7 +234,7 @@ object LocalizedStrings {
     val moduleAll get() = if (isEnglishSync()) "All" else "全部"
     val moduleCustom get() = if (isEnglishSync()) "Custom" else "自定义"
     val moduleDeleteTitle get() = if (isEnglishSync()) "Delete Module" else "删除模组"
-    val moduleDeleteConfirm get() = if (isEnglishSync()) "Are you sure you want to delete this module? This will also delete all highlights, annotations and bookmarks, and cannot be undone." else "确定要删除「${"\$"}{module.title}」吗？此操作将同时删除该模组的所有高亮、批注和书签，且不可撤销。"
+    fun moduleDeleteConfirm(title: String) = if (isEnglishSync()) "Are you sure you want to delete「$title」? This will also delete all highlights, annotations and bookmarks, and cannot be undone." else "确定要删除「$title」吗？此操作将同时删除该模组的所有高亮、批注和书签，且不可撤销。"
     val moduleFavorite get() = if (isEnglishSync()) "Favorite" else "收藏"
     val moduleUnfavorite get() = if (isEnglishSync()) "Unfavorite" else "取消收藏"
     val moduleAuthor get() = if (isEnglishSync()) "Author: " else "作者: "
@@ -213,7 +245,6 @@ object LocalizedStrings {
     val groupOverview get() = if (isEnglishSync()) "Overview" else "概览"
     val groupPcLibrary get() = if (isEnglishSync()) "PC Library" else "PC角色库"
     val groupNpcArchive get() = if (isEnglishSync()) "NPC Archive" else "NPC档案"
-    val groupModuleContent get() = if (isEnglishSync()) "Module Content" else "模组内容"
     val groupSessionRecord get() = if (isEnglishSync()) "Session Record" else "Session记录"
     val groupKpMemo get() = if (isEnglishSync()) "KP Memo" else "KP备忘录"
 
@@ -221,6 +252,11 @@ object LocalizedStrings {
     val memoTitle get() = if (isEnglishSync()) "Memo" else "备忘录"
     val memoCreate get() = if (isEnglishSync()) "Create Memo" else "创建备忘"
     val memoSecret get() = if (isEnglishSync()) "Secret Note" else "暗线笔记"
+
+    // ==================== 阅读器 ====================
+    val readerPureMode get() = if (isEnglishSync()) "Pure Reading" else "纯享阅读"
+    val readerExitPureMode get() = if (isEnglishSync()) "Exit Pure Reading" else "退出纯享模式"
+    val readerSelectText get() = if (isEnglishSync()) "Select Text" else "选中文本"
 
     private fun isEnglishSync(): Boolean {
         return ThemePreferences.currentLanguage == ThemePreferences.LANGUAGE_ENGLISH ||

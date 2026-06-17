@@ -30,6 +30,7 @@ object Constants {
     const val MEMO_TYPE_REMINDER = "reminder"
     const val MEMO_TYPE_RULE = "rule"
     const val MEMO_TYPE_GENERAL = "general"
+    const val MEMO_TYPE_HIDDEN = "hidden"
 
     // Difficulty
     const val DIFFICULTY_EASY = "easy"

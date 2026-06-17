@@ -13,9 +13,6 @@ interface ImageDao {
     @Query("SELECT * FROM images WHERE collectionId = :collectionId ORDER BY sortOrder ASC, createTime ASC")
     fun getByCollectionId(collectionId: String): Flow<List<ImageEntity>>
 
-    @Query("SELECT * FROM images WHERE imageGroupId = :groupId ORDER BY sortOrder ASC, createTime ASC")
-    fun getByGroupId(groupId: String): Flow<List<ImageEntity>>
-
     @Query("SELECT * FROM images WHERE imageId = :imageId")
     fun getById(imageId: String): Flow<ImageEntity?>
 
@@ -33,9 +30,6 @@ interface ImageDao {
 
     @Update
     suspend fun update(image: ImageEntity)
-
-    @Query("UPDATE images SET imageGroupId = :groupId WHERE imageId = :imageId")
-    suspend fun updateGroupId(imageId: String, groupId: String?)
 
     @Delete
     suspend fun delete(image: ImageEntity)

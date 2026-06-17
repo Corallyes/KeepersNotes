@@ -28,7 +28,8 @@ class PlayerCharacterRepository @Inject constructor(
         groupId: String,
         playerName: String,
         characterName: String,
-        system: String = "COC7"
+        system: String = "COC7",
+        gender: String = ""
     ): String {
         val pcId = UUID.randomUUID().toString()
         pcDao.insertPc(
@@ -37,7 +38,8 @@ class PlayerCharacterRepository @Inject constructor(
                 groupId = groupId,
                 playerName = playerName,
                 characterName = characterName,
-                system = system
+                system = system,
+                gender = gender
             )
         )
         return pcId

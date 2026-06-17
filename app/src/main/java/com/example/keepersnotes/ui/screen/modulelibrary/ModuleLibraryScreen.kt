@@ -37,26 +37,30 @@ fun ModuleLibraryScreen(
     viewModel: ModuleLibraryViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val context = androidx.compose.ui.platform.LocalContext.current
 
     var showImportDialog by remember { mutableStateOf(false) }
     var selectedFileUri by remember { mutableStateOf<Uri?>(null) }
+    var selectedFileName by remember { mutableStateOf("") }
     val snackbarHostState = remember { SnackbarHostState() }
 
     var moduleToEdit by remember { mutableStateOf<ModuleEntity?>(null) }
     var moduleToDelete by remember { mutableStateOf<ModuleEntity?>(null) }
 
-    val zipPickerLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.OpenDocument()
-    ) { uri: Uri? ->
-        uri?.let { viewModel.importZipFromUri(it) }
-    }
-
+    // Unified file picker — supports txt, docx, zip, rar, 7z
     val filePickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocument()
     ) { uri: Uri? ->
         uri?.let {
-            selectedFileUri = it
-            showImportDialog = true
+            val fileName = getFileName(context, it)
+            val ext = fileName.substringAfterLast('.', "").lowercase()
+            if (ext in listOf("zip", "rar", "7z")) {
+                viewModel.importZipFromUri(it)
+            } else {
+                selectedFileUri = it
+                selectedFileName = fileName.substringBeforeLast(".")
+                showImportDialog = true
+            }
         }
     }
 
@@ -93,10 +97,10 @@ fun ModuleLibraryScreen(
                     onDismissRequest = { showFabMenu = false }
                 ) {
                     DropdownMenuItem(
-                        text = { Text(LocalizedStrings.moduleImportZip) },
+                        text = { Text(LocalizedStrings.moduleImportArchive) },
                         onClick = {
                             showFabMenu = false
-                            zipPickerLauncher.launch(arrayOf("application/zip", "application/x-zip-compressed"))
+                            filePickerLauncher.launch(arrayOf("*/*"))
                         },
                         leadingIcon = { Icon(Icons.Default.Folder, contentDescription = null) }
                     )
@@ -104,7 +108,7 @@ fun ModuleLibraryScreen(
                         text = { Text(LocalizedStrings.moduleImportSingle) },
                         onClick = {
                             showFabMenu = false
-                            filePickerLauncher.launch(arrayOf("text/plain", "application/vnd.openxmlformats-officedocument.wordprocessingml.document"))
+                            filePickerLauncher.launch(arrayOf("*/*"))
                         },
                         leadingIcon = { Icon(Icons.Default.FileUpload, contentDescription = null) }
                     )
@@ -263,6 +267,7 @@ fun ModuleLibraryScreen(
 
     if (showImportDialog && selectedFileUri != null) {
         ImportModuleDialog(
+            initialTitle = selectedFileName,
             onDismiss = {
                 showImportDialog = false
                 selectedFileUri = null
@@ -290,7 +295,7 @@ fun ModuleLibraryScreen(
         AlertDialog(
             onDismissRequest = { moduleToDelete = null },
             title = { Text(LocalizedStrings.moduleDeleteTitle) },
-            text = { Text(LocalizedStrings.moduleDeleteConfirm) },
+            text = { Text(LocalizedStrings.moduleDeleteConfirm(module.title)) },
             confirmButton = {
                 TextButton(
                     onClick = {
@@ -308,14 +313,33 @@ fun ModuleLibraryScreen(
             }
         )
     }
+
+    // Import loading dialog
+    if (uiState.isImporting) {
+        AlertDialog(
+            onDismissRequest = {},
+            title = { Text(LocalizedStrings.importing) },
+            text = {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    CircularProgressIndicator(modifier = Modifier.size(24.dp))
+                    Text(LocalizedStrings.importing)
+                }
+            },
+            confirmButton = {}
+        )
+    }
 }
 
 @Composable
 private fun ImportModuleDialog(
+    initialTitle: String = "",
     onDismiss: () -> Unit,
     onConfirm: (title: String, author: String, system: String) -> Unit
 ) {
-    var title by remember { mutableStateOf("") }
+    var title by remember { mutableStateOf(initialTitle) }
     var author by remember { mutableStateOf("") }
     var system by remember { mutableStateOf("") }
 
@@ -484,4 +508,15 @@ private fun ModuleCard(
             }
         }
     }
+}
+
+private fun getFileName(context: android.content.Context, uri: Uri): String {
+    var fileName = ""
+    context.contentResolver.query(uri, null, null, null, null)?.use { cursor ->
+        val nameIndex = cursor.getColumnIndex(android.provider.OpenableColumns.DISPLAY_NAME)
+        if (cursor.moveToFirst() && nameIndex >= 0) {
+            fileName = cursor.getString(nameIndex) ?: ""
+        }
+    }
+    return fileName
 }

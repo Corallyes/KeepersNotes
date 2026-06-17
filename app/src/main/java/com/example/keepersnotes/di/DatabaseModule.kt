@@ -50,9 +50,6 @@ object DatabaseModule {
     fun provideImageDao(db: AppDatabase): ImageDao = db.imageDao()
 
     @Provides
-    fun provideImageGroupDao(db: AppDatabase): ImageGroupDao = db.imageGroupDao()
-
-    @Provides
     fun provideHighlightDao(db: AppDatabase): HighlightDao = db.highlightDao()
 
     @Provides

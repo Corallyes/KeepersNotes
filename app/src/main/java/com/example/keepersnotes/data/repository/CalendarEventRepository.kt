@@ -14,8 +14,20 @@ class CalendarEventRepository @Inject constructor(
     fun getEventsBetween(startDate: Long, endDate: Long): Flow<List<CalendarEventEntity>> =
         dao.getEventsBetween(startDate, endDate)
 
-    fun getEventsByDate(date: Long): Flow<List<CalendarEventEntity>> =
-        dao.getEventsByDate(date)
+    fun getEventsByDate(date: Long): Flow<List<CalendarEventEntity>> {
+        val cal = java.util.Calendar.getInstance().apply {
+            timeInMillis = date
+            set(java.util.Calendar.HOUR_OF_DAY, 0)
+            set(java.util.Calendar.MINUTE, 0)
+            set(java.util.Calendar.SECOND, 0)
+            set(java.util.Calendar.MILLISECOND, 0)
+        }
+        val dayStart = cal.timeInMillis
+        cal.add(java.util.Calendar.DAY_OF_MONTH, 1)
+        cal.add(java.util.Calendar.MILLISECOND, -1)
+        val dayEnd = cal.timeInMillis
+        return dao.getEventsByDate(dayStart, dayEnd)
+    }
 
     fun getEventsByGroupId(groupId: String): Flow<List<CalendarEventEntity>> =
         dao.getEventsByGroupId(groupId)

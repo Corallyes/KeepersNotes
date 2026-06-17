@@ -1,32 +1,42 @@
 package com.example.keepersnotes.ui.component
 
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.example.keepersnotes.data.local.entity.GroupEntity
 import com.example.keepersnotes.util.Constants
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun GroupCard(
     group: GroupEntity,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
-    pcNames: List<String> = emptyList()
+    pcNames: List<String> = emptyList(),
+    onEdit: (() -> Unit)? = null,
+    onDelete: (() -> Unit)? = null
 ) {
-    Card(
-        modifier = modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick)
-    ) {
+    var showMenu by remember { mutableStateOf(false) }
+
+    Box {
+        Card(
+            modifier = modifier
+                .fillMaxWidth()
+                .combinedClickable(
+                    onClick = onClick,
+                    onLongClick = { showMenu = true }
+                )
+        ) {
         Column(
             modifier = Modifier.padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp)
@@ -120,6 +130,34 @@ fun GroupCard(
                     text = "上次开团: ${formatRelativeTime(time)}",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+        }
+
+        // 长按菜单
+        DropdownMenu(
+            expanded = showMenu,
+            onDismissRequest = { showMenu = false }
+        ) {
+            if (onEdit != null) {
+                DropdownMenuItem(
+                    text = { Text("编辑") },
+                    onClick = {
+                        showMenu = false
+                        onEdit()
+                    },
+                    leadingIcon = { Icon(Icons.Default.Edit, contentDescription = null) }
+                )
+            }
+            if (onDelete != null) {
+                DropdownMenuItem(
+                    text = { Text("删除") },
+                    onClick = {
+                        showMenu = false
+                        onDelete()
+                    },
+                    leadingIcon = { Icon(Icons.Default.Delete, contentDescription = null) }
                 )
             }
         }

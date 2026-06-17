@@ -7,6 +7,10 @@ import com.example.keepersnotes.data.local.entity.ImageEntity
 import com.example.keepersnotes.data.repository.ArchiveRepository
 import com.example.keepersnotes.data.repository.ImageRepository
 import com.example.keepersnotes.util.FileReaderUtil
+import com.github.junrar.Archive
+import com.github.junrar.rarfile.FileHeader
+import org.apache.commons.compress.archivers.sevenz.SevenZArchiveEntry
+import org.apache.commons.compress.archivers.sevenz.SevenZFile
 import java.io.File
 import java.io.FileOutputStream
 import java.util.UUID
@@ -17,7 +21,8 @@ import javax.inject.Singleton
 data class ZipImportResult(
     val archives: List<ArchiveEntity>,
     val images: List<ImageEntity>,
-    val collectionTitle: String
+    val collectionTitle: String,
+    val combinedContent: String
 )
 
 @Singleton
@@ -28,29 +33,43 @@ class ZipImportManager @Inject constructor(
     companion object {
         private val DOC_EXTENSIONS = setOf("docx", "txt", "md")
         private val IMG_EXTENSIONS = setOf("jpg", "jpeg", "png", "webp")
+        private val ARCHIVE_EXTENSIONS = setOf("zip", "rar", "7z")
     }
 
-    suspend fun importZip(
+    suspend fun importArchive(
         context: Context,
         uri: Uri,
         collectionId: String
     ): ZipImportResult {
-        val tempDir = File(context.cacheDir, "zip_import_${System.currentTimeMillis()}")
+        val fileName = getFileName(context, uri)
+        val ext = fileName.substringAfterLast('.', "").lowercase()
+        val tempDir = File(context.cacheDir, "archive_import_${System.currentTimeMillis()}")
         try {
-            extractZip(context, uri, tempDir)
+            when (ext) {
+                "rar" -> extractRar(context, uri, tempDir)
+                "7z" -> extract7z(context, uri, tempDir)
+                else -> extractZip(context, uri, tempDir)
+            }
             val files = scanFiles(tempDir)
 
             val archives = processDocuments(context, files.documents, collectionId)
             val images = processImages(context, files.images, collectionId)
 
-            archiveRepository.insertAll(archives)
-            imageRepository.insertAll(images)
+            // Combine all document contents into a single markdown string
+            val combinedContent = archives.joinToString("\n\n") { archive ->
+                "# ${archive.title}\n\n${archive.contentMarkdown}"
+            }
 
-            val title = deriveCollectionTitle(files.documents, uri, context)
-            return ZipImportResult(archives, images, title)
+            val title = deriveCollectionTitle(files.documents, fileName)
+            return ZipImportResult(archives, images, title, combinedContent)
         } finally {
             tempDir.deleteRecursively()
         }
+    }
+
+    suspend fun insertImportResult(result: ZipImportResult) {
+        archiveRepository.insertAll(result.archives)
+        imageRepository.insertAll(result.images)
     }
 
     private fun extractZip(context: Context, uri: Uri, destDir: File) {
@@ -71,6 +90,63 @@ class ZipImportManager @Inject constructor(
                 }
             }
         } ?: throw Exception("无法打开 ZIP 文件")
+    }
+
+    private fun extractRar(context: Context, uri: Uri, destDir: File) {
+        destDir.mkdirs()
+        val tempRar = File(context.cacheDir, "temp_${System.currentTimeMillis()}.rar")
+        try {
+            context.contentResolver.openInputStream(uri)?.use { input ->
+                tempRar.outputStream().use { output -> input.copyTo(output) }
+            } ?: throw Exception("无法打开 RAR 文件")
+
+            Archive(tempRar).use { archive ->
+                var header: FileHeader? = archive.nextFileHeader()
+                while (header != null) {
+                    if (!header.isDirectory) {
+                        val fileName = header.fileName.trim()
+                        val outFile = File(destDir, fileName)
+                        outFile.parentFile?.mkdirs()
+                        FileOutputStream(outFile).use { out ->
+                            archive.extractFile(header, out)
+                        }
+                    }
+                    header = archive.nextFileHeader()
+                }
+            }
+        } finally {
+            tempRar.delete()
+        }
+    }
+
+    private fun extract7z(context: Context, uri: Uri, destDir: File) {
+        destDir.mkdirs()
+        val temp7z = File(context.cacheDir, "temp_${System.currentTimeMillis()}.7z")
+        try {
+            context.contentResolver.openInputStream(uri)?.use { input ->
+                temp7z.outputStream().use { output -> input.copyTo(output) }
+            } ?: throw Exception("无法打开 7Z 文件")
+
+            SevenZFile(temp7z).use { sevenZ ->
+                var entry: SevenZArchiveEntry? = sevenZ.nextEntry
+                while (entry != null) {
+                    if (!entry.isDirectory) {
+                        val outFile = File(destDir, entry.name)
+                        outFile.parentFile?.mkdirs()
+                        FileOutputStream(outFile).use { out ->
+                            val buffer = ByteArray(8192)
+                            var len: Int
+                            while (sevenZ.read(buffer).also { len = it } != -1) {
+                                out.write(buffer, 0, len)
+                            }
+                        }
+                    }
+                    entry = sevenZ.nextEntry
+                }
+            }
+        } finally {
+            temp7z.delete()
+        }
     }
 
     private fun scanFiles(dir: File): ScannedFiles {
@@ -99,9 +175,8 @@ class ZipImportManager @Inject constructor(
             val ext = file.extension.lowercase()
             val markdown = when (ext) {
                 "docx" -> FileReaderUtil.readDocxToMarkdown(file)
-                "txt" -> file.readText()
-                "md" -> file.readText()
-                else -> file.readText()
+                "txt", "md" -> FileReaderUtil.readTextFileSmart(file)
+                else -> FileReaderUtil.readTextFileSmart(file)
             }
 
             ArchiveEntity(
@@ -143,13 +218,11 @@ class ZipImportManager @Inject constructor(
 
     private fun deriveCollectionTitle(
         documents: List<File>,
-        zipUri: Uri,
-        context: Context
+        fileName: String
     ): String {
         if (documents.isNotEmpty()) {
             return documents.first().nameWithoutExtension
         }
-        val fileName = getFileName(context, zipUri)
         return fileName.substringBeforeLast(".").ifBlank { "未命名卷宗" }
     }
 

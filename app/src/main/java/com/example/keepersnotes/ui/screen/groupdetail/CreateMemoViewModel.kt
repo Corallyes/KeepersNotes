@@ -1,14 +1,19 @@
 package com.example.keepersnotes.ui.screen.groupdetail
 
+import android.content.Context
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.keepersnotes.data.local.entity.ModuleEntity
+import com.example.keepersnotes.data.local.entity.CalendarEventEntity
+import com.example.keepersnotes.data.repository.CalendarEventRepository
+import com.example.keepersnotes.data.repository.GroupRepository
 import com.example.keepersnotes.data.repository.KpMemoRepository
 import com.example.keepersnotes.data.repository.ModuleRepository
 import com.example.keepersnotes.util.Chapter
 import com.example.keepersnotes.util.Constants
 import com.example.keepersnotes.util.ModuleContentParser
+import com.example.keepersnotes.util.NotificationHelper
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
@@ -17,7 +22,7 @@ import javax.inject.Inject
 data class CreateMemoUiState(
     val title: String = "",
     val content: String = "",
-    val type: String = Constants.MEMO_TYPE_GENERAL,
+    val type: String = Constants.MEMO_TYPE_TODO,
     val isHidden: Boolean = false,
     val priority: Int = 0,
     val titleError: String? = null,
@@ -27,14 +32,21 @@ data class CreateMemoUiState(
     val selectedModuleId: String? = null,
     val chapters: List<Chapter> = emptyList(),
     val selectedChapterId: String? = null,
-    val selectedChapterTitle: String = ""
+    val selectedChapterTitle: String = "",
+    // 提醒通知相关
+    val isNotificationEnabled: Boolean = false,
+    val notificationDate: Long? = null, // 选中的日期（零点时间戳）
+    val notificationHour: Int = 9,
+    val notificationMinute: Int = 0
 )
 
 @HiltViewModel
 class CreateMemoViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
     private val kpMemoRepository: KpMemoRepository,
-    private val moduleRepository: ModuleRepository
+    private val moduleRepository: ModuleRepository,
+    private val groupRepository: GroupRepository,
+    private val calendarEventRepository: CalendarEventRepository
 ) : ViewModel() {
 
     private val groupId: String = savedStateHandle.get<String>("groupId") ?: ""
@@ -43,12 +55,17 @@ class CreateMemoViewModel @Inject constructor(
     val uiState: StateFlow<CreateMemoUiState> = _uiState.asStateFlow()
 
     init {
-        // 加载可用的模组
-        moduleRepository.getAllModules()
-            .onEach { modules ->
-                _uiState.update { it.copy(modules = modules) }
+        // 从团获取关联的模组
+        if (groupId.isNotBlank()) {
+            viewModelScope.launch {
+                groupRepository.getGroupById(groupId)
+                    .firstOrNull()?.let { group ->
+                        group.moduleId?.let { moduleId ->
+                            selectModule(moduleId)
+                        }
+                    }
             }
-            .launchIn(viewModelScope)
+        }
     }
 
     fun updateTitle(title: String) {
@@ -99,7 +116,19 @@ class CreateMemoViewModel @Inject constructor(
         }
     }
 
-    fun submit() {
+    fun updateNotificationEnabled(enabled: Boolean) {
+        _uiState.update { it.copy(isNotificationEnabled = enabled) }
+    }
+
+    fun updateNotificationDate(date: Long?) {
+        _uiState.update { it.copy(notificationDate = date) }
+    }
+
+    fun updateNotificationTime(hour: Int, minute: Int) {
+        _uiState.update { it.copy(notificationHour = hour, notificationMinute = minute) }
+    }
+
+    fun submit(context: Context? = null) {
         val state = _uiState.value
         if (state.title.isBlank() && state.content.isBlank()) {
             _uiState.update { it.copy(titleError = "请输入标题或内容") }
@@ -107,23 +136,58 @@ class CreateMemoViewModel @Inject constructor(
         }
         _uiState.update { it.copy(isSubmitting = true) }
         viewModelScope.launch {
+            // 计算通知时间戳
+            val notificationTime: Long? = if (state.type == Constants.MEMO_TYPE_REMINDER && state.isNotificationEnabled && state.notificationDate != null) {
+                state.notificationDate!! + state.notificationHour * 3600_000L + state.notificationMinute * 60_000L
+            } else null
+
             val memoId = kpMemoRepository.createMemo(
                 groupId = groupId,
                 type = state.type,
                 title = state.title.trim(),
                 content = state.content.trim(),
-                isHidden = state.isHidden
+                isHidden = state.type == Constants.MEMO_TYPE_HIDDEN || state.isHidden
             )
-            // Update priority and module/chapter association
+            // Update priority, module/chapter association, and notification
             kpMemoRepository.getMemoById(memoId).firstOrNull()?.let { memo ->
+                val notificationId = memoId.hashCode() and 0x7FFFFFFF
                 kpMemoRepository.updateMemo(
                     memo.copy(
                         priority = state.priority,
                         moduleId = state.selectedModuleId,
                         chapterId = state.selectedChapterId,
-                        chapterTitle = state.selectedChapterTitle
+                        chapterTitle = state.selectedChapterTitle,
+                        isNotificationEnabled = state.type == Constants.MEMO_TYPE_REMINDER && state.isNotificationEnabled,
+                        notificationTime = notificationTime,
+                        notificationId = notificationId
                     )
                 )
+                // 调度通知 & 创建日历日程
+                if (state.type == Constants.MEMO_TYPE_REMINDER && state.isNotificationEnabled && notificationTime != null) {
+                    if (context != null && notificationTime > System.currentTimeMillis()) {
+                        NotificationHelper.scheduleNotification(
+                            context = context,
+                            notificationId = notificationId.toLong(),
+                            title = state.title.trim().ifBlank { "备忘录提醒" },
+                            content = state.content.trim().take(100),
+                            triggerTime = notificationTime
+                        )
+                    }
+                    // 同步到日历
+                    val cal = java.util.Calendar.getInstance().apply { timeInMillis = notificationTime }
+                    val dateOnly = java.util.Calendar.getInstance().apply {
+                        set(cal.get(java.util.Calendar.YEAR), cal.get(java.util.Calendar.MONTH), cal.get(java.util.Calendar.DAY_OF_MONTH), 0, 0, 0)
+                        set(java.util.Calendar.MILLISECOND, 0)
+                    }.timeInMillis
+                    val timeStr = "${cal.get(java.util.Calendar.HOUR_OF_DAY).toString().padStart(2, '0')}:${cal.get(java.util.Calendar.MINUTE).toString().padStart(2, '0')}"
+                    calendarEventRepository.create(
+                        groupId = groupId,
+                        title = "⏰ ${state.title.trim().ifBlank { "备忘录提醒" }}",
+                        date = dateOnly,
+                        time = timeStr,
+                        type = "memo_reminder"
+                    )
+                }
             }
             _uiState.update { it.copy(isSubmitting = false, createdMemoId = memoId) }
         }

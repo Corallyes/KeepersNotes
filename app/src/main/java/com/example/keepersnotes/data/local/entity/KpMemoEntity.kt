@@ -18,6 +18,10 @@ data class KpMemoEntity(
     val moduleId: String? = null, // 关联的模组ID
     val chapterId: String? = null, // 关联的章节ID
     val chapterTitle: String = "", // 关联的章节标题
+    // 提醒类型定时通知相关
+    val isNotificationEnabled: Boolean = false, // 是否开启定时通知
+    val notificationTime: Long? = null, // 定时通知时间戳
+    val notificationId: Int = 0, // 通知ID，用于取消/更新通知
     val createTime: Long = System.currentTimeMillis(),
     val updateTime: Long = System.currentTimeMillis()
 )

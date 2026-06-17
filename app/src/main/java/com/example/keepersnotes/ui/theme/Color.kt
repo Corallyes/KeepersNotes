@@ -3,10 +3,10 @@ package com.example.keepersnotes.ui.theme
 import androidx.compose.ui.graphics.Color
 
 // ===== Vintage Notebook Light Theme =====
-val PaperBackground = Color(0xFFD6C6A5)
-val PaperSurface = Color(0xFFCDBB97)
-val PaperSurfaceVariant = Color(0xFFBFA882)
-val PaperElevated = Color(0xFFD9CEAF)
+val PaperBackground = Color(0xFFC0B49E)
+val PaperSurface = Color(0xFFC3B69E)
+val PaperSurfaceVariant = Color(0xFFB8A98E)
+val PaperElevated = Color(0xFFCFC4AE)
 
 val InkText = Color(0xFF2D241B)
 val SecondaryInk = Color(0xFF5A4B3A)

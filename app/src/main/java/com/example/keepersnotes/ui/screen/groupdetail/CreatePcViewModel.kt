@@ -19,6 +19,7 @@ data class CreatePcUiState(
     val system: String = Constants.SYSTEM_COC7,
     val hpMax: String = "",
     val sanMax: String = "",
+    val gender: String = "",
     val playerNameError: String? = null,
     val characterNameError: String? = null,
     val isSubmitting: Boolean = false,
@@ -56,6 +57,10 @@ class CreatePcViewModel @Inject constructor(
         _uiState.update { it.copy(sanMax = value) }
     }
 
+    fun updateGender(value: String) {
+        _uiState.update { it.copy(gender = value) }
+    }
+
     fun submit() {
         val state = _uiState.value
         var hasError = false
@@ -75,7 +80,8 @@ class CreatePcViewModel @Inject constructor(
                 groupId = groupId,
                 playerName = state.playerName.trim(),
                 characterName = state.characterName.trim(),
-                system = state.system
+                system = state.system,
+                gender = state.gender
             )
             // Update HP/SAN max values if provided
             val hpMax = state.hpMax.toIntOrNull()

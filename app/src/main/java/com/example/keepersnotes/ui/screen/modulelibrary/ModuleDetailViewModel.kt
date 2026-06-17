@@ -236,8 +236,8 @@ class ModuleDetailViewModel @Inject constructor(
     }
 
     // 默认NPC
-    fun createDefaultNpc(name: String, alias: String = "", occupation: String = "", description: String = "", truePurpose: String = "") {
-        viewModelScope.launch { defaultNpcRepository.create(moduleId, name, alias, occupation, description, truePurpose) }
+    fun createDefaultNpc(name: String, alias: String = "", occupation: String = "", description: String = "", truePurpose: String = "", gender: String = "") {
+        viewModelScope.launch { defaultNpcRepository.create(moduleId, name, alias, occupation, description, truePurpose, gender) }
     }
 
     fun updateDefaultNpc(entity: ModuleDefaultNpcEntity) {

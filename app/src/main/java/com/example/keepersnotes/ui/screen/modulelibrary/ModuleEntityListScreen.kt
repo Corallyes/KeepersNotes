@@ -1,9 +1,13 @@
 package com.example.keepersnotes.ui.screen.modulelibrary
 
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
@@ -11,6 +15,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -41,6 +46,7 @@ fun ModuleEntityListScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     var showAddDialog by remember { mutableStateOf(false) }
     var editingEntity by remember { mutableStateOf<Any?>(null) }
+    var colorPickerClue by remember { mutableStateOf<ModuleClueEntity?>(null) }
 
     Scaffold(
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
@@ -146,12 +152,10 @@ fun ModuleEntityListScreen(
                         }
                         EntityType.CLUE -> {
                             val clue = entity as ModuleClueEntity
-                            EntityListItem(
-                                name = clue.name,
-                                subtitle = clue.type.ifBlank { clue.source },
-                                icon = Icons.Default.Search,
-                                iconTint = Color(0xFFE91E63),
-                                onClick = { editingEntity = clue }
+                            ClueListItem(
+                                clue = clue,
+                                onClick = { editingEntity = clue },
+                                onLongClick = { colorPickerClue = clue }
                             )
                         }
                     }
@@ -167,8 +171,8 @@ fun ModuleEntityListScreen(
             EntityType.NPC -> {
                 NpcEditDialog(
                     onDismiss = { showAddDialog = false },
-                    onSave = { name, alias, occupation, description, truePurpose ->
-                        viewModel.createDefaultNpc(name, alias, occupation, description, truePurpose)
+                    onSave = { name, alias, occupation, description, truePurpose, gender ->
+                        viewModel.createDefaultNpc(name, alias, occupation, description, truePurpose, gender)
                         showAddDialog = false
                     }
                 )
@@ -194,8 +198,8 @@ fun ModuleEntityListScreen(
             EntityType.CLUE -> {
                 ClueEditDialog(
                     onDismiss = { showAddDialog = false },
-                    onSave = { name, type, description, source, isHidden ->
-                        viewModel.createClue(name, type, description, source, isHidden)
+                    onSave = { name, type, description, source ->
+                        viewModel.createClue(name, type, description, source, false)
                         showAddDialog = false
                     }
                 )
@@ -212,8 +216,8 @@ fun ModuleEntityListScreen(
                 NpcEditDialog(
                     npc = npc,
                     onDismiss = { editingEntity = null },
-                    onSave = { name, alias, occupation, description, truePurpose ->
-                        viewModel.updateDefaultNpc(npc.copy(name = name, alias = alias, occupation = occupation, description = description, truePurpose = truePurpose))
+                    onSave = { name, alias, occupation, description, truePurpose, gender ->
+                        viewModel.updateDefaultNpc(npc.copy(name = name, alias = alias, occupation = occupation, description = description, truePurpose = truePurpose, gender = gender))
                         editingEntity = null
                     },
                     onDelete = {
@@ -257,8 +261,8 @@ fun ModuleEntityListScreen(
                 ClueEditDialog(
                     clue = clue,
                     onDismiss = { editingEntity = null },
-                    onSave = { name, type, description, source, isHidden ->
-                        viewModel.updateClue(clue.copy(name = name, type = type, description = description, source = source, isHidden = isHidden))
+                    onSave = { name, type, description, source ->
+                        viewModel.updateClue(clue.copy(name = name, type = type, description = description, source = source))
                         editingEntity = null
                     },
                     onDelete = {
@@ -268,6 +272,67 @@ fun ModuleEntityListScreen(
                 )
             }
         }
+    }
+
+    // Color picker dialog for clues
+    colorPickerClue?.let { clue ->
+        AlertDialog(
+            onDismissRequest = { colorPickerClue = null },
+            title = { Text("标记颜色") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(
+                        clue.name,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    clueColors.forEach { (colorValue, colorName) ->
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable {
+                                    viewModel.updateClue(clue.copy(color = colorValue))
+                                    colorPickerClue = null
+                                }
+                                .padding(vertical = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            if (colorValue != 0L) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(28.dp)
+                                        .clip(CircleShape)
+                                        .background(Color(colorValue))
+                                )
+                            } else {
+                                Icon(
+                                    Icons.Default.HighlightOff,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(28.dp),
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                            Spacer(modifier = Modifier.width(16.dp))
+                            Text(colorName, style = MaterialTheme.typography.bodyLarge)
+                            if (clue.color == colorValue) {
+                                Spacer(modifier = Modifier.weight(1f))
+                                Icon(
+                                    Icons.Default.Check,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.primary
+                                )
+                            }
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { colorPickerClue = null }) {
+                    Text("取消")
+                }
+            }
+        )
     }
 }
 
@@ -290,6 +355,57 @@ private fun EntityListItem(
             Spacer(modifier = Modifier.width(16.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Text(text = name, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium)
+                if (subtitle.isNotBlank()) {
+                    Text(text = subtitle, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                }
+            }
+            Icon(Icons.Default.ChevronRight, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+    }
+}
+
+private val clueColors = listOf(
+    0L to "无颜色",
+    0xFFFFEB3B to "黄色",
+    0xFF4CAF50 to "绿色",
+    0xFF2196F3 to "蓝色",
+    0xFFFF9800 to "橙色",
+    0xFFE91E63 to "粉色"
+)
+
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+private fun ClueListItem(
+    clue: ModuleClueEntity,
+    onClick: () -> Unit,
+    onLongClick: () -> Unit
+) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .combinedClickable(
+                onClick = onClick,
+                onLongClick = onLongClick
+            )
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            if (clue.color != 0L) {
+                Box(
+                    modifier = Modifier
+                        .size(24.dp)
+                        .clip(CircleShape)
+                        .background(Color(clue.color))
+                )
+            } else {
+                Icon(Icons.Default.Search, contentDescription = null, tint = Color(0xFFE91E63), modifier = Modifier.size(24.dp))
+            }
+            Spacer(modifier = Modifier.width(16.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(text = clue.name, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium)
+                val subtitle = clue.type.ifBlank { clue.source }
                 if (subtitle.isNotBlank()) {
                     Text(text = subtitle, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 }

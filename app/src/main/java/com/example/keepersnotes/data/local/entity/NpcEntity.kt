@@ -15,6 +15,7 @@ data class NpcEntity(
     val truePurpose: String = "", // KP-only hidden info
     val relationshipToPc: String = "",
     val status: String = "alive", // alive, dead, missing, unknown
+    val gender: String = "",  // male, female, alien, other
     val firstAppearance: String = "",
     val kpNotes: String = "",
     val portraitUri: String? = null,

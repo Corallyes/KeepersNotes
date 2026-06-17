@@ -18,6 +18,9 @@ interface ModuleClueDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insert(entity: ModuleClueEntity)
 
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertAll(entities: List<ModuleClueEntity>)
+
     @Update
     suspend fun update(entity: ModuleClueEntity)
 

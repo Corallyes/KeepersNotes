@@ -31,7 +31,12 @@ fun HelpScreen(
         FaqItem(question = LocalizedStrings.faq5Q, answer = LocalizedStrings.faq5A),
         FaqItem(question = LocalizedStrings.faq6Q, answer = LocalizedStrings.faq6A),
         FaqItem(question = LocalizedStrings.faq7Q, answer = LocalizedStrings.faq7A),
-        FaqItem(question = LocalizedStrings.faq8Q, answer = LocalizedStrings.faq8A)
+        FaqItem(question = LocalizedStrings.faq8Q, answer = LocalizedStrings.faq8A),
+        FaqItem(question = LocalizedStrings.faq9Q, answer = LocalizedStrings.faq9A),
+        FaqItem(question = LocalizedStrings.faq10Q, answer = LocalizedStrings.faq10A),
+        FaqItem(question = LocalizedStrings.faq11Q, answer = LocalizedStrings.faq11A),
+        FaqItem(question = LocalizedStrings.faq12Q, answer = LocalizedStrings.faq12A),
+        FaqItem(question = LocalizedStrings.faq13Q, answer = LocalizedStrings.faq13A)
     )
 
     Scaffold(
@@ -54,32 +59,6 @@ fun HelpScreen(
             contentPadding = PaddingValues(16.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            item {
-                Text(
-                    LocalizedStrings.helpAnnouncement,
-                    style = MaterialTheme.typography.titleLarge
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-            }
-
-            item {
-                Card(modifier = Modifier.fillMaxWidth()) {
-                    Column(modifier = Modifier.padding(16.dp)) {
-                        Text(
-                            LocalizedStrings.helpAnnouncementTitle,
-                            style = MaterialTheme.typography.titleMedium
-                        )
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text(
-                            LocalizedStrings.helpAnnouncementBody,
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                }
-                Spacer(modifier = Modifier.height(16.dp))
-            }
-
             item {
                 Text(
                     LocalizedStrings.helpFaq,

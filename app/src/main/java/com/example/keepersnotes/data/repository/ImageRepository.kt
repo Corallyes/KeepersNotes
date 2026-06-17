@@ -13,9 +13,6 @@ class ImageRepository @Inject constructor(
     fun getByCollectionId(collectionId: String): Flow<List<ImageEntity>> =
         imageDao.getByCollectionId(collectionId)
 
-    fun getByGroupId(groupId: String): Flow<List<ImageEntity>> =
-        imageDao.getByGroupId(groupId)
-
     fun getById(imageId: String): Flow<ImageEntity?> =
         imageDao.getById(imageId)
 
@@ -30,9 +27,6 @@ class ImageRepository @Inject constructor(
     suspend fun insertAll(images: List<ImageEntity>) = imageDao.insertAll(images)
 
     suspend fun update(image: ImageEntity) = imageDao.update(image)
-
-    suspend fun updateGroupId(imageId: String, groupId: String?) =
-        imageDao.updateGroupId(imageId, groupId)
 
     suspend fun delete(image: ImageEntity) = imageDao.delete(image)
 

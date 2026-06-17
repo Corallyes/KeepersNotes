@@ -31,6 +31,9 @@ interface GroupDao {
     @Query("SELECT COUNT(*) FROM groups WHERE status = 'active'")
     fun getActiveGroupCount(): Flow<Int>
 
+    @Query("SELECT COUNT(*) FROM groups WHERE status = 'completed'")
+    fun getCompletedGroupCount(): Flow<Int>
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertGroup(group: GroupEntity)
 

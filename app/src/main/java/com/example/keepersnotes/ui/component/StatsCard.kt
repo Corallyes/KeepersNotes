@@ -55,8 +55,8 @@ fun StatsCard(
 
 @Composable
 fun StatsCardRow(
+    completedGroupCount: Int,
     activeGroupCount: Int,
-    totalPcCount: Int,
     upcomingCount: Int,
     weeklySessionCount: Int,
     modifier: Modifier = Modifier
@@ -66,15 +66,15 @@ fun StatsCardRow(
         horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         StatsCard(
-            icon = Icons.Default.People,
-            label = "进行中",
-            value = "$activeGroupCount",
+            icon = Icons.Default.CheckCircle,
+            label = "已完成",
+            value = "$completedGroupCount",
             modifier = Modifier.weight(1f)
         )
         StatsCard(
-            icon = Icons.Default.Person,
-            label = "总PC数",
-            value = "$totalPcCount",
+            icon = Icons.Default.People,
+            label = "进行中",
+            value = "$activeGroupCount",
             modifier = Modifier.weight(1f)
         )
         StatsCard(

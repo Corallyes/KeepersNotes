@@ -1,15 +1,15 @@
 package com.example.keepersnotes.ui.screen.grouplist
 
-import android.net.Uri
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.PressInteraction
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Image
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -31,12 +31,7 @@ fun CreateGroupScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     var showModuleSelector by remember { mutableStateOf(false) }
-
-    val imagePickerLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.GetContent()
-    ) { uri: Uri? ->
-        uri?.let { viewModel.updateCoverImage(it) }
-    }
+    var pendingModule by remember { mutableStateOf<com.example.keepersnotes.data.local.entity.ModuleEntity?>(null) }
 
     LaunchedEffect(uiState.createdGroupId) {
         uiState.createdGroupId?.let { onGroupCreated(it) }
@@ -59,6 +54,7 @@ fun CreateGroupScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
+                .verticalScroll(rememberScrollState())
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
@@ -98,17 +94,15 @@ fun CreateGroupScreen(
                 }
             }
 
-            // Game format selector
-            Text("开团方式", style = MaterialTheme.typography.labelMedium)
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                listOf("线上", "线下", "线上线下").forEach { format ->
-                    FilterChip(
-                        selected = uiState.gameFormat == format,
-                        onClick = { viewModel.updateGameFormat(format) },
-                        label = { Text(format) }
-                    )
-                }
-            }
+            // Game format
+            OutlinedTextField(
+                value = uiState.gameFormat,
+                onValueChange = viewModel::updateGameFormat,
+                label = { Text("开团方式") },
+                placeholder = { Text("如 线上、线下、线上线下") },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true
+            )
 
             // Scale
             OutlinedTextField(
@@ -129,14 +123,28 @@ fun CreateGroupScreen(
                 var showStartDatePicker by remember { mutableStateOf(false) }
                 var showEndDatePicker by remember { mutableStateOf(false) }
 
+                val startInteractionSource = remember { MutableInteractionSource() }
+                val endInteractionSource = remember { MutableInteractionSource() }
+
+                LaunchedEffect(startInteractionSource) {
+                    startInteractionSource.interactions.collect { interaction ->
+                        if (interaction is PressInteraction.Release) showStartDatePicker = true
+                    }
+                }
+                LaunchedEffect(endInteractionSource) {
+                    endInteractionSource.interactions.collect { interaction ->
+                        if (interaction is PressInteraction.Release) showEndDatePicker = true
+                    }
+                }
+
                 OutlinedTextField(
                     value = uiState.startTime?.let { dateFormat.format(java.util.Date(it)) } ?: "",
                     onValueChange = {},
                     label = { Text("开团时间") },
                     placeholder = { Text("点击选择") },
                     readOnly = true,
-                    modifier = Modifier.weight(1f).clickable { showStartDatePicker = true },
-                    enabled = false
+                    interactionSource = startInteractionSource,
+                    modifier = Modifier.weight(1f)
                 )
                 OutlinedTextField(
                     value = uiState.expectedEndTime?.let { dateFormat.format(java.util.Date(it)) } ?: "",
@@ -144,8 +152,8 @@ fun CreateGroupScreen(
                     label = { Text("预计结束") },
                     placeholder = { Text("点击选择") },
                     readOnly = true,
-                    modifier = Modifier.weight(1f).clickable { showEndDatePicker = true },
-                    enabled = false
+                    interactionSource = endInteractionSource,
+                    modifier = Modifier.weight(1f)
                 )
 
                 if (showStartDatePicker) {
@@ -185,49 +193,53 @@ fun CreateGroupScreen(
             }
 
             // Default session time
-            OutlinedTextField(
-                value = uiState.defaultSessionTime,
-                onValueChange = viewModel::updateDefaultSessionTime,
-                label = { Text("默认开团时间") },
-                placeholder = { Text("如 16:00，用于日程提醒") },
-                modifier = Modifier.fillMaxWidth(),
-                singleLine = true
+            var showTimePicker by remember { mutableStateOf(false) }
+            val timeParts = uiState.defaultSessionTime.split(":")
+            val initHour = timeParts.getOrNull(0)?.toIntOrNull() ?: 14
+            val initMinute = timeParts.getOrNull(1)?.toIntOrNull() ?: 0
+            val timePickerState = rememberTimePickerState(
+                initialHour = initHour,
+                initialMinute = initMinute,
+                is24Hour = true
             )
 
-            // Cover image picker
-            Text("封面图", style = MaterialTheme.typography.labelMedium)
-            OutlinedCard(
-                onClick = { imagePickerLauncher.launch("image/*") },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(120.dp)
-            ) {
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    if (uiState.coverImageUri != null) {
-                        // TODO: Show image preview using Coil or similar
-                        Text("已选择封面图", style = MaterialTheme.typography.bodyMedium)
-                    } else {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Icon(
-                                Icons.Default.Image,
-                                contentDescription = null,
-                                modifier = Modifier.size(32.dp),
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                            Text(
-                                "点击选择封面图",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                    }
+            val timeInteractionSource = remember { MutableInteractionSource() }
+            LaunchedEffect(timeInteractionSource) {
+                timeInteractionSource.interactions.collect { interaction ->
+                    if (interaction is PressInteraction.Release) showTimePicker = true
                 }
             }
 
-            Spacer(modifier = Modifier.weight(1f))
+            OutlinedTextField(
+                value = uiState.defaultSessionTime,
+                onValueChange = {},
+                label = { Text("默认开团时间") },
+                placeholder = { Text("点击选择时间") },
+                readOnly = true,
+                interactionSource = timeInteractionSource,
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            if (showTimePicker) {
+                AlertDialog(
+                    onDismissRequest = { showTimePicker = false },
+                    title = { Text("选择默认开团时间") },
+                    text = { TimePicker(state = timePickerState) },
+                    confirmButton = {
+                        TextButton(onClick = {
+                            val h = timePickerState.hour.toString().padStart(2, '0')
+                            val m = timePickerState.minute.toString().padStart(2, '0')
+                            viewModel.updateDefaultSessionTime("$h:$m")
+                            showTimePicker = false
+                        }) { Text("确定") }
+                    },
+                    dismissButton = {
+                        TextButton(onClick = { showTimePicker = false }) { Text("取消") }
+                    }
+                )
+            }
+
+            Spacer(modifier = Modifier.height(32.dp))
 
             Button(
                 onClick = viewModel::submit,
@@ -249,8 +261,33 @@ fun CreateGroupScreen(
             modules = uiState.modules,
             onDismiss = { showModuleSelector = false },
             onModuleSelected = { module ->
-                viewModel.selectModule(module)
+                pendingModule = module
                 showModuleSelector = false
+            }
+        )
+    }
+
+    // Module confirmation dialog
+    val confirmModule = pendingModule
+    if (confirmModule != null) {
+        AlertDialog(
+            onDismissRequest = { pendingModule = null },
+            title = { Text("确认选择模组") },
+            text = {
+                Text("确定要选择「${confirmModule.title}」作为本团模组吗？\n\n模组一旦确定，后续对模组的修改不会影响到此团。本团将继承当前模组的默认PC、NPC和人物关系网。")
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    viewModel.selectModule(confirmModule)
+                    pendingModule = null
+                }) {
+                    Text("确定")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { pendingModule = null }) {
+                    Text("取消")
+                }
             }
         )
     }

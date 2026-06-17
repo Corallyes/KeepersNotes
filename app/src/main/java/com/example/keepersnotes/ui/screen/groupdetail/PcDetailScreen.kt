@@ -2,7 +2,6 @@ package com.example.keepersnotes.ui.screen.groupdetail
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Edit
@@ -16,6 +15,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.keepersnotes.data.local.entity.PlayerCharacterEntity
 import com.example.keepersnotes.ui.component.CompactTopBar
 import com.example.keepersnotes.ui.component.PcStatusBadge
+import com.example.keepersnotes.ui.screen.modulelibrary.Gender
 import com.example.keepersnotes.util.Constants
 import com.example.keepersnotes.util.JsonUtil
 
@@ -24,10 +24,9 @@ import com.example.keepersnotes.util.JsonUtil
 fun PcDetailScreen(
     pcId: String,
     onBack: () -> Unit,
-    viewModel: GroupDetailViewModel = hiltViewModel()
+    viewModel: PcDetailViewModel = hiltViewModel()
 ) {
-    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    val pc = uiState.pcs.find { it.pcId == pcId }
+    val pc by viewModel.pc.collectAsStateWithLifecycle()
     var showEditSheet by remember { mutableStateOf(false) }
 
     Scaffold(
@@ -48,7 +47,8 @@ fun PcDetailScreen(
             )
         }
     ) { padding ->
-        if (pc == null) {
+        val currentPc = pc
+        if (currentPc == null) {
             Box(modifier = Modifier.fillMaxSize().padding(padding)) {
                 Text("加载中...", modifier = Modifier.padding(16.dp))
             }
@@ -69,14 +69,17 @@ fun PcDetailScreen(
                     Column(modifier = Modifier.padding(16.dp)) {
                         Row(modifier = Modifier.fillMaxWidth()) {
                             Text(
-                                text = pc.characterName,
+                                text = currentPc.characterName,
                                 style = MaterialTheme.typography.headlineSmall,
                                 modifier = Modifier.weight(1f)
                             )
-                            PcStatusBadge(status = pc.status)
+                            PcStatusBadge(status = currentPc.status)
                         }
-                        Text("玩家: ${pc.playerName}", style = MaterialTheme.typography.bodyMedium)
-                        Text("系统: ${pc.system}", style = MaterialTheme.typography.bodySmall)
+                        Text("玩家: ${currentPc.playerName}", style = MaterialTheme.typography.bodyMedium)
+                        Text("系统: ${currentPc.system}", style = MaterialTheme.typography.bodySmall)
+                        if (currentPc.gender.isNotBlank()) {
+                            Text("性别: ${Gender.fromKey(currentPc.gender)?.label ?: currentPc.gender}", style = MaterialTheme.typography.bodySmall)
+                        }
                     }
                 }
             }
@@ -91,9 +94,9 @@ fun PcDetailScreen(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceEvenly
                         ) {
-                            StatItem("HP", "${pc.hpCurrent}/${pc.hpMax}")
-                            StatItem("SAN", "${pc.sanCurrent}/${pc.sanMax}")
-                            StatItem("幸运", "${pc.luck}")
+                            StatItem("HP", "${currentPc.hpCurrent}/${currentPc.hpMax}")
+                            StatItem("SAN", "${currentPc.sanCurrent}/${currentPc.sanMax}")
+                            StatItem("幸运", "${currentPc.luck}")
                         }
                     }
                 }
@@ -101,7 +104,7 @@ fun PcDetailScreen(
 
             // Skills list
             item {
-                val skills = JsonUtil.parseKeyValueJson(pc.skillsJson)
+                val skills = JsonUtil.parseKeyValueJson(currentPc.skillsJson)
                 Card(modifier = Modifier.fillMaxWidth()) {
                     Column(modifier = Modifier.padding(16.dp)) {
                         Text("技能列表", style = MaterialTheme.typography.titleSmall)
@@ -135,7 +138,7 @@ fun PcDetailScreen(
 
             // Inventory list
             item {
-                val inventory = JsonUtil.parseStringArray(pc.inventoryJson)
+                val inventory = JsonUtil.parseStringArray(currentPc.inventoryJson)
                 Card(modifier = Modifier.fillMaxWidth()) {
                     Column(modifier = Modifier.padding(16.dp)) {
                         Text("物品清单", style = MaterialTheme.typography.titleSmall)
@@ -156,72 +159,39 @@ fun PcDetailScreen(
             }
 
             // Background
-            if (pc.background.isNotBlank()) {
+            if (currentPc.background.isNotBlank()) {
                 item {
                     Card(modifier = Modifier.fillMaxWidth()) {
                         Column(modifier = Modifier.padding(16.dp)) {
                             Text("背景故事", style = MaterialTheme.typography.titleSmall)
                             Spacer(modifier = Modifier.height(4.dp))
-                            Text(pc.background, style = MaterialTheme.typography.bodyMedium)
+                            Text(currentPc.background, style = MaterialTheme.typography.bodyMedium)
                         }
                     }
                 }
             }
 
             // KP Notes
-            if (pc.kpNotes.isNotBlank()) {
+            if (currentPc.kpNotes.isNotBlank()) {
                 item {
                     Card(modifier = Modifier.fillMaxWidth()) {
                         Column(modifier = Modifier.padding(16.dp)) {
                             Text("KP备注", style = MaterialTheme.typography.titleSmall)
                             Spacer(modifier = Modifier.height(4.dp))
-                            Text(pc.kpNotes, style = MaterialTheme.typography.bodyMedium)
+                            Text(currentPc.kpNotes, style = MaterialTheme.typography.bodyMedium)
                         }
                     }
                 }
             }
 
-            // Event timeline (sessions this PC participated in)
-            item {
-                val pcSessions = uiState.sessions.filter { session ->
-                    session.participantPcIds.split(",").contains(pcId)
-                }
-                Card(modifier = Modifier.fillMaxWidth()) {
-                    Column(modifier = Modifier.padding(16.dp)) {
-                        Text("参与的Session", style = MaterialTheme.typography.titleSmall)
-                        Spacer(modifier = Modifier.height(8.dp))
-                        if (pcSessions.isEmpty()) {
-                            Text(
-                                "暂无参与记录",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        } else {
-                            pcSessions.forEach { session ->
-                                ListItem(
-                                    headlineContent = { Text("Session ${session.sessionNumber}") },
-                                    supportingContent = {
-                                        if (session.summary.isNotBlank()) {
-                                            Text(
-                                                session.summary,
-                                                maxLines = 2,
-                                                style = MaterialTheme.typography.bodySmall
-                                            )
-                                        }
-                                    }
-                                )
-                            }
-                        }
-                    }
-                }
-            }
         }
     }
 
     // Edit PC bottom sheet
-    if (showEditSheet && pc != null) {
+    val editPc = pc
+    if (showEditSheet && editPc != null) {
         EditPcSheet(
-            pc = pc,
+            pc = editPc,
             onDismiss = { showEditSheet = false },
             onSave = { updatedPc ->
                 viewModel.updatePc(updatedPc)
@@ -246,6 +216,8 @@ private fun EditPcSheet(
     var sanMax by remember { mutableStateOf(pc.sanMax.toString()) }
     var luck by remember { mutableStateOf(pc.luck.toString()) }
     var status by remember { mutableStateOf(pc.status) }
+    var gender by remember { mutableStateOf(pc.gender) }
+    var genderExpanded by remember { mutableStateOf(false) }
     var background by remember { mutableStateOf(pc.background) }
     var kpNotes by remember { mutableStateOf(pc.kpNotes) }
     var skillsJson by remember { mutableStateOf(pc.skillsJson) }
@@ -284,6 +256,32 @@ private fun EditPcSheet(
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true
                 )
+            }
+            item {
+                ExposedDropdownMenuBox(
+                    expanded = genderExpanded,
+                    onExpandedChange = { genderExpanded = it }
+                ) {
+                    OutlinedTextField(
+                        value = Gender.fromKey(gender)?.label ?: "",
+                        onValueChange = {},
+                        readOnly = true,
+                        label = { Text("性别") },
+                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = genderExpanded) },
+                        modifier = Modifier.fillMaxWidth().menuAnchor()
+                    )
+                    ExposedDropdownMenu(
+                        expanded = genderExpanded,
+                        onDismissRequest = { genderExpanded = false }
+                    ) {
+                        Gender.entries.forEach { g ->
+                            DropdownMenuItem(
+                                text = { Text(g.label) },
+                                onClick = { gender = g.key; genderExpanded = false }
+                            )
+                        }
+                    }
+                }
             }
             item {
                 Text("状态", style = MaterialTheme.typography.labelMedium)
@@ -396,6 +394,7 @@ private fun EditPcSheet(
                                 sanMax = sanMax.toIntOrNull() ?: pc.sanMax,
                                 luck = luck.toIntOrNull() ?: pc.luck,
                                 status = status,
+                                gender = gender,
                                 background = background.trim(),
                                 skillsJson = skillsJson.trim(),
                                 inventoryJson = inventoryJson.trim(),

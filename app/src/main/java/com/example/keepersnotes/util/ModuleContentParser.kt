@@ -353,8 +353,6 @@ object ModuleContentParser {
         if (trimmed.matches(Regex("^[-=*_—]{3,}$"))) return 0
         // All-caps English headings
         if (trimmed.matches(Regex("^[A-Z][A-Z\\s]{5,}$"))) return 1
-        // Bold markers (**Title**)
-        if (trimmed.matches(Regex("^\\*\\*[^*]+\\*\\*$"))) return 1
         return -1
     }
 

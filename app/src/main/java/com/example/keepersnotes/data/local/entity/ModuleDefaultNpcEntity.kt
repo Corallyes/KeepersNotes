@@ -28,6 +28,7 @@ data class ModuleDefaultNpcEntity(
     val truePurpose: String = "",
     val relationshipToPc: String = "",
     val status: String = "alive",
+    val gender: String = "",  // male, female, alien, other
     val portraitUri: String? = null,
     val sortOrder: Int = 0,
     val createTime: Long = System.currentTimeMillis()

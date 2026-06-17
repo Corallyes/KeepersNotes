@@ -25,10 +25,11 @@ fun AnnotationToolbar(
     activeTool: AnnotationTool,
     selectedColor: Long,
     eraserMode: EraserMode,
+    pureReadingMode: Boolean,
     onToolSelected: (AnnotationTool) -> Unit,
     onColorSelected: (Long) -> Unit,
     onEraserModeChanged: (EraserMode) -> Unit,
-    onClearAll: () -> Unit,
+    onTogglePureReadingMode: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     var showColorPicker by remember { mutableStateOf(false) }
@@ -167,15 +168,16 @@ fun AnnotationToolbar(
                     }
                 }
 
-                // 清除全部按钮
+                // 纯享阅读模式按钮
                 IconButton(
-                    onClick = onClearAll,
+                    onClick = onTogglePureReadingMode,
                     modifier = Modifier.size(40.dp)
                 ) {
                     Icon(
-                        Icons.Default.DeleteSweep,
-                        contentDescription = "清除全部",
-                        tint = MaterialTheme.colorScheme.error
+                        if (pureReadingMode) Icons.Default.VisibilityOff else Icons.Default.Visibility,
+                        contentDescription = if (pureReadingMode) "退出纯享模式" else "纯享阅读",
+                        tint = if (pureReadingMode) MaterialTheme.colorScheme.primary
+                        else MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }

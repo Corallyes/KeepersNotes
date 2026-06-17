@@ -12,6 +12,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.example.keepersnotes.data.local.entity.GroupEntity
 import com.example.keepersnotes.ui.component.CompactTopBar
 import com.example.keepersnotes.ui.component.GroupCard
 import com.example.keepersnotes.util.LocalizedStrings
@@ -21,9 +22,12 @@ import com.example.keepersnotes.util.LocalizedStrings
 fun GroupListScreen(
     onGroupClick: (String) -> Unit,
     onCreateGroup: () -> Unit,
+    onEditGroup: (String) -> Unit = {},
     viewModel: GroupListViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    var showDeleteDialog by remember { mutableStateOf(false) }
+    var pendingDeleteGroup by remember { mutableStateOf<GroupEntity?>(null) }
 
     Scaffold(
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
@@ -72,11 +76,45 @@ fun GroupListScreen(
                     items(uiState.groups, key = { it.groupId }) { group ->
                         GroupCard(
                             group = group,
-                            onClick = { onGroupClick(group.groupId) }
+                            onClick = { onGroupClick(group.groupId) },
+                            onEdit = { onEditGroup(group.groupId) },
+                            onDelete = {
+                                pendingDeleteGroup = group
+                                showDeleteDialog = true
+                            }
                         )
                     }
                 }
             }
         }
+    }
+
+    // 删除确认对话框
+    val deleteGroup = pendingDeleteGroup
+    if (showDeleteDialog && deleteGroup != null) {
+        AlertDialog(
+            onDismissRequest = { showDeleteDialog = false },
+            title = { Text("删除团") },
+            text = { Text("确定要删除「${deleteGroup.groupName}」吗？此操作不可撤销，团内所有数据将被删除。") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        viewModel.deleteGroup(deleteGroup.groupId)
+                        showDeleteDialog = false
+                        pendingDeleteGroup = null
+                    }
+                ) {
+                    Text("删除", color = MaterialTheme.colorScheme.error)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = {
+                    showDeleteDialog = false
+                    pendingDeleteGroup = null
+                }) {
+                    Text("取消")
+                }
+            }
+        )
     }
 }

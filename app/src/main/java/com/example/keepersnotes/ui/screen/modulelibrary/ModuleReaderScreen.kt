@@ -1,10 +1,14 @@
 package com.example.keepersnotes.ui.screen.modulelibrary
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -13,11 +17,14 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.*
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.keepersnotes.data.local.entity.AnnotationEntity
@@ -25,6 +32,7 @@ import com.example.keepersnotes.data.local.entity.HighlightEntity
 import com.example.keepersnotes.ui.component.*
 import com.example.keepersnotes.ui.component.EditModuleDialog
 import com.example.keepersnotes.util.Chapter
+import com.example.keepersnotes.util.LocalizedStrings
 import com.example.keepersnotes.util.ModuleContentParser
 import kotlinx.coroutines.launch
 
@@ -48,6 +56,9 @@ fun ModuleReaderScreen(
     var selectionStart by remember { mutableIntStateOf(0) }
     var selectionEnd by remember { mutableIntStateOf(0) }
 
+    // 文本选择面板
+    var showSelectSheet by remember { mutableStateOf(false) }
+
     // 查看批注弹窗
     var showAnnotationViewDialog by remember { mutableStateOf(false) }
     var selectedAnnotation by remember { mutableStateOf<AnnotationEntity?>(null) }
@@ -68,6 +79,9 @@ fun ModuleReaderScreen(
     // 编辑/删除模组弹窗
     var showEditModuleDialog by remember { mutableStateOf(false) }
     var showDeleteModuleDialog by remember { mutableStateOf(false) }
+
+    // 纯享阅读模式
+    var pureReadingMode by remember { mutableStateOf(false) }
 
     // 编辑章节内容弹窗
     var showEditChapterDialog by remember { mutableStateOf(false) }
@@ -102,7 +116,10 @@ fun ModuleReaderScreen(
                             chapter = chapter,
                             depth = 0,
                             selectedChapter = uiState.selectedChapter,
-                            onChapterClick = { viewModel.selectChapter(it) },
+                            onChapterClick = {
+                                viewModel.selectChapter(it)
+                                coroutineScope.launch { drawerState.close() }
+                            },
                             expandedIds = expandedChapterIds,
                             onToggleExpand = { id ->
                                 expandedChapterIds = if (id in expandedChapterIds) {
@@ -120,6 +137,7 @@ fun ModuleReaderScreen(
         Scaffold(
             contentWindowInsets = WindowInsets(0, 0, 0, 0),
             topBar = {
+                if (pureReadingMode) return@Scaffold
                 CompactTopBar(
                     title = uiState.module?.title ?: "模组阅读",
                     navigationIcon = {
@@ -239,22 +257,26 @@ fun ModuleReaderScreen(
                 )
             },
             bottomBar = {
+                if (pureReadingMode) return@Scaffold
                 // 标注工具栏
                 AnnotationToolbar(
                     activeTool = uiState.activeTool,
                     selectedColor = uiState.selectedColor,
                     eraserMode = uiState.eraserMode,
                     onToolSelected = { tool ->
-                        if (tool == AnnotationTool.BOOKMARK) {
-                            // 书签工具直接弹出添加对话框
-                            showAddBookmarkDialog = true
-                        } else {
-                            viewModel.setActiveTool(tool)
+                        when (tool) {
+                            AnnotationTool.BOOKMARK -> showAddBookmarkDialog = true
+                            AnnotationTool.HIGHLIGHT, AnnotationTool.ANNOTATE -> {
+                                viewModel.setActiveTool(tool)
+                                showSelectSheet = true
+                            }
+                            else -> viewModel.setActiveTool(tool)
                         }
                     },
                     onColorSelected = viewModel::setSelectedColor,
                     onEraserModeChanged = viewModel::setEraserMode,
-                    onClearAll = { showClearDialog = true }
+                    pureReadingMode = pureReadingMode,
+                    onTogglePureReadingMode = { pureReadingMode = !pureReadingMode }
                 )
             }
         ) { padding ->
@@ -284,9 +306,10 @@ fun ModuleReaderScreen(
 
             val selectedChapter = uiState.selectedChapter
 
-            Column(modifier = Modifier.padding(padding).fillMaxSize()) {
+            Box(modifier = Modifier.padding(padding).fillMaxSize()) {
+            Column(modifier = Modifier.fillMaxSize()) {
                 // Search bar
-                if (showSearch) {
+                if (showSearch && !pureReadingMode) {
                     Surface(
                         tonalElevation = 2.dp,
                         modifier = Modifier.fillMaxWidth()
@@ -299,7 +322,7 @@ fun ModuleReaderScreen(
                                 leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
                                 trailingIcon = {
                                     if (searchQuery.isNotBlank()) {
-                                        IconButton(onClick = { searchQuery = "" }) {
+                                        IconButton(onClick = { searchQuery = ""; showSearch = false }) {
                                             Icon(Icons.Default.Clear, contentDescription = "清除")
                                         }
                                     }
@@ -364,7 +387,7 @@ fun ModuleReaderScreen(
                 }
 
                 // Chapter breadcrumb / navigation bar
-                if (selectedChapter != null) {
+                if (selectedChapter != null && !pureReadingMode && !showSearch) {
                     Surface(
                         tonalElevation = 1.dp,
                         modifier = Modifier.fillMaxWidth()
@@ -407,7 +430,7 @@ fun ModuleReaderScreen(
                 val chapterHighlights = uiState.highlights.filter { it.chapterId == selectedChapter?.id }
                 val chapterAnnotations = uiState.annotations.filter { it.chapterId == selectedChapter?.id }
                 val chapterBookmarks = uiState.bookmarks.filter { it.chapterId == selectedChapter?.id }
-                if (chapterHighlights.isNotEmpty() || chapterAnnotations.isNotEmpty() || chapterBookmarks.isNotEmpty() || uiState.bookmarks.isNotEmpty()) {
+                if (!pureReadingMode && (chapterHighlights.isNotEmpty() || chapterAnnotations.isNotEmpty() || chapterBookmarks.isNotEmpty() || uiState.bookmarks.isNotEmpty())) {
                     Surface(
                         tonalElevation = 0.dp,
                         modifier = Modifier.fillMaxWidth()
@@ -478,33 +501,127 @@ fun ModuleReaderScreen(
                     }
                 }
 
+                // 标注工具提示
+                if (!pureReadingMode && (uiState.activeTool == AnnotationTool.HIGHLIGHT || uiState.activeTool == AnnotationTool.ANNOTATE)) {
+                    Surface(
+                        color = MaterialTheme.colorScheme.primaryContainer,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(
+                            text = if (uiState.activeTool == AnnotationTool.HIGHLIGHT)
+                                "长按选中文字 → 复制 → 点击底部「荧光笔」即可高亮"
+                            else
+                                "长按选中文字 → 复制 → 点击底部「批注」即可添加批注",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onPrimaryContainer,
+                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp)
+                        )
+                    }
+                }
+
                 // Content area
                 if (selectedChapter != null) {
                     if (selectedChapter.content.isNotBlank()) {
-                        // 显示带标注的内容
-                        AnnotatedContent(
-                            content = selectedChapter.content,
-                            highlights = chapterHighlights,
-                            annotations = chapterAnnotations,
-                            activeTool = uiState.activeTool,
-                            onAnnotationClick = { annotation ->
-                                if (uiState.activeTool == AnnotationTool.ERASER) {
-                                    viewModel.eraseByAnnotation(annotation)
-                                } else {
-                                    selectedAnnotation = annotation
-                                    showAnnotationViewDialog = true
-                                }
-                            },
-                            onHighlightClick = { highlight ->
-                                if (uiState.activeTool == AnnotationTool.ERASER) {
-                                    viewModel.eraseByHighlight(highlight)
-                                }
-                            },
+                        val scrollState = rememberScrollState()
+                        LaunchedEffect(selectedChapter.id) {
+                            scrollState.scrollTo(0)
+                        }
+                        val scrollProgress = if (scrollState.maxValue > 0)
+                            scrollState.value.toFloat() / scrollState.maxValue.toFloat()
+                        else 0f
+
+                        Box(
                             modifier = Modifier
                                 .fillMaxSize()
-                                .verticalScroll(rememberScrollState())
-                                .padding(horizontal = 20.dp, vertical = 16.dp)
-                        )
+                                .pointerInput(pureReadingMode) {
+                                    if (pureReadingMode) {
+                                        detectTapGestures(
+                                            onTap = { pureReadingMode = false }
+                                        )
+                                    }
+                                }
+                        ) {
+                            // 可滚动内容
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .verticalScroll(scrollState)
+                            ) {
+                                AnnotatedContent(
+                                    content = selectedChapter.content,
+                                    highlights = chapterHighlights,
+                                    annotations = chapterAnnotations,
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(
+                                            horizontal = if (pureReadingMode) 24.dp else 20.dp,
+                                            vertical = 16.dp
+                                        )
+                                )
+                            }
+
+                            // 右侧阅读进度条（模拟实体书侧边进度）
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxHeight()
+                                    .width(20.dp)
+                                    .align(Alignment.CenterEnd)
+                            ) {
+                                // 进度条背景轨道
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxHeight()
+                                        .width(3.dp)
+                                        .align(Alignment.Center)
+                                        .clip(RoundedCornerShape(1.5.dp))
+                                        .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+                                )
+                                // 进度条滑块
+                                val sliderHeight = 40.dp
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(sliderHeight)
+                                        .align(Alignment.TopStart)
+                                        .offset(y = (scrollProgress * 600).dp)
+                                        .padding(horizontal = 4.dp)
+                                        .clip(RoundedCornerShape(3.dp))
+                                        .background(
+                                            if (pureReadingMode)
+                                                MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f)
+                                            else
+                                                MaterialTheme.colorScheme.primary.copy(alpha = 0.6f)
+                                        )
+                                )
+                                // 百分比文字（纯享模式下显示）
+                                if (pureReadingMode) {
+                                    Text(
+                                        text = "${(scrollProgress * 100).toInt()}%",
+                                        style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp),
+                                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+                                        modifier = Modifier
+                                            .align(Alignment.BottomCenter)
+                                            .padding(bottom = 4.dp)
+                                    )
+                                }
+                            }
+
+                            // 标注工具激活时显示"选中文本"按钮
+                            if (!pureReadingMode && (uiState.activeTool == AnnotationTool.HIGHLIGHT || uiState.activeTool == AnnotationTool.ANNOTATE)) {
+                                Box(
+                                    modifier = Modifier.fillMaxSize(),
+                                    contentAlignment = Alignment.BottomEnd
+                                ) {
+                                    SmallFloatingActionButton(
+                                        onClick = { showSelectSheet = true },
+                                        modifier = Modifier.padding(16.dp),
+                                        containerColor = MaterialTheme.colorScheme.secondaryContainer
+                                    ) {
+                                        Icon(Icons.Default.TextFields, contentDescription = LocalizedStrings.readerSelectText)
+                                    }
+                                }
+                            }
+                        }
                     } else {
                         Box(
                             modifier = Modifier.fillMaxWidth().padding(32.dp),
@@ -530,6 +647,7 @@ fun ModuleReaderScreen(
                     }
                 }
             }
+            } // end Box for progress bar overlay
         }
     }
 
@@ -676,6 +794,131 @@ fun ModuleReaderScreen(
         )
     }
 
+    // 文本选择面板（荧光笔/批注模式）
+    val chapterForSelect = uiState.selectedChapter
+    if (showSelectSheet && chapterForSelect != null) {
+        val ch = chapterForSelect
+        var selectFieldValue by remember(ch.content) {
+            mutableStateOf(
+                androidx.compose.ui.text.input.TextFieldValue(
+                    text = ch.content,
+                    selection = androidx.compose.ui.text.TextRange(0, 0)
+                )
+            )
+        }
+        val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+        ModalBottomSheet(
+            onDismissRequest = { showSelectSheet = false },
+            sheetState = sheetState
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp)
+            ) {
+                Text(
+                    if (uiState.activeTool == AnnotationTool.HIGHLIGHT) "选中文字后点击高亮" else "选中文字后点击添加批注",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+
+                // 可选中的文本框
+                BasicTextField(
+                    value = selectFieldValue,
+                    onValueChange = { selectFieldValue = it },
+                    readOnly = true,
+                    textStyle = MaterialTheme.typography.bodyLarge.copy(
+                        color = MaterialTheme.colorScheme.onSurface,
+                        lineHeight = MaterialTheme.typography.bodyLarge.fontSize * 1.6
+                    ),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(min = 200.dp, max = 400.dp)
+                        .verticalScroll(rememberScrollState())
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // 选中文字预览
+                val selText = selectFieldValue.text.substring(
+                    selectFieldValue.selection.min.coerceIn(0, selectFieldValue.text.length),
+                    selectFieldValue.selection.max.coerceIn(0, selectFieldValue.text.length)
+                )
+                if (selText.isNotBlank()) {
+                    Card(
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.surfaceVariant
+                        ),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(
+                            "已选: ${selText.take(100)}${if (selText.length > 100) "..." else ""}",
+                            style = MaterialTheme.typography.bodySmall,
+                            modifier = Modifier.padding(12.dp)
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(8.dp))
+                }
+
+                // 操作按钮
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.End
+                ) {
+                    TextButton(onClick = { showSelectSheet = false }) {
+                        Text("取消")
+                    }
+                    Spacer(modifier = Modifier.width(8.dp))
+                    if (uiState.activeTool == AnnotationTool.HIGHLIGHT) {
+                        Button(
+                            onClick = {
+                                if (selText.isNotBlank()) {
+                                    val idx = ch.content.indexOf(selText)
+                                    if (idx >= 0) {
+                                        viewModel.addHighlight(
+                                            chapterId = ch.id,
+                                            startIndex = idx,
+                                            endIndex = idx + selText.length,
+                                            selectedText = selText
+                                        )
+                                    }
+                                }
+                                showSelectSheet = false
+                            },
+                            enabled = selText.isNotBlank()
+                        ) {
+                            Icon(Icons.Default.Highlight, contentDescription = null, modifier = Modifier.size(18.dp))
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text("高亮")
+                        }
+                    } else {
+                        Button(
+                            onClick = {
+                                if (selText.isNotBlank()) {
+                                    val idx = ch.content.indexOf(selText)
+                                    if (idx >= 0) {
+                                        selectedTextForAnnotation = selText
+                                        selectionStart = idx
+                                        selectionEnd = idx + selText.length
+                                        showAnnotationDialog = true
+                                    }
+                                }
+                                showSelectSheet = false
+                            },
+                            enabled = selText.isNotBlank()
+                        ) {
+                            Icon(Icons.Default.Comment, contentDescription = null, modifier = Modifier.size(18.dp))
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text("添加批注")
+                        }
+                    }
+                }
+                Spacer(modifier = Modifier.height(32.dp))
+            }
+        }
+    }
+
     // 编辑模组信息弹窗
     if (showEditModuleDialog && uiState.module != null) {
         EditModuleDialog(
@@ -690,6 +933,7 @@ fun ModuleReaderScreen(
 
     // 删除模组确认弹窗
     if (showDeleteModuleDialog) {
+        android.util.Log.d("DeleteModule", "title='${uiState.module?.title}', titleBytes=${uiState.module?.title?.toByteArray()?.joinToString(",") { it.toString() }}")
         AlertDialog(
             onDismissRequest = { showDeleteModuleDialog = false },
             title = { Text("删除模组") },
@@ -768,68 +1012,42 @@ private fun AnnotatedContent(
     content: String,
     highlights: List<HighlightEntity>,
     annotations: List<AnnotationEntity>,
-    activeTool: AnnotationTool,
-    onAnnotationClick: (AnnotationEntity) -> Unit,
-    onHighlightClick: (HighlightEntity) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    // 构建带标注的文本
     val annotatedString = buildAnnotatedString {
         append(content)
 
-        // 应用高亮
         highlights.forEach { highlight ->
             val start = highlight.startIndex.coerceIn(0, content.length)
             val end = highlight.endIndex.coerceIn(0, content.length)
             if (start < end) {
                 addStyle(
-                    style = SpanStyle(
-                        background = Color(highlight.color).copy(alpha = 0.3f)
-                    ),
-                    start = start,
-                    end = end
-                )
-                addStringAnnotation(
-                    tag = "highlight",
-                    annotation = highlight.highlightId,
-                    start = start,
-                    end = end
+                    style = SpanStyle(background = Color(highlight.color).copy(alpha = 0.3f)),
+                    start = start, end = end
                 )
             }
         }
 
-        // 应用批注标记
         annotations.forEach { annotation ->
             val start = annotation.startIndex.coerceIn(0, content.length)
             val end = annotation.endIndex.coerceIn(0, content.length)
             if (start < end) {
-                addStringAnnotation(
-                    tag = "annotation",
-                    annotation = annotation.annotationId,
-                    start = start,
-                    end = end
-                )
                 addStyle(
                     style = SpanStyle(
                         textDecoration = TextDecoration.Underline,
                         color = Color(annotation.color)
                     ),
-                    start = start,
-                    end = end
+                    start = start, end = end
                 )
             }
         }
     }
 
-    val textStyle = MaterialTheme.typography.bodyLarge.copy(
-        lineHeight = MaterialTheme.typography.bodyLarge.fontSize * 1.8
-    )
-
-    // 使用基础Text组件显示带标注的文本
-    // 由于Compose的ClickableText在新版本中已更改，使用简化实现
     Text(
         text = annotatedString,
-        style = textStyle,
+        style = MaterialTheme.typography.bodyLarge.copy(
+            lineHeight = MaterialTheme.typography.bodyLarge.fontSize * 1.8
+        ),
         modifier = modifier
     )
 }

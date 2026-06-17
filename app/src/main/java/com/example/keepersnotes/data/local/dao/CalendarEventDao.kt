@@ -10,8 +10,8 @@ interface CalendarEventDao {
     @Query("SELECT * FROM calendar_events WHERE date BETWEEN :startDate AND :endDate ORDER BY date ASC, time ASC")
     fun getEventsBetween(startDate: Long, endDate: Long): Flow<List<CalendarEventEntity>>
 
-    @Query("SELECT * FROM calendar_events WHERE date = :date ORDER BY time ASC")
-    fun getEventsByDate(date: Long): Flow<List<CalendarEventEntity>>
+    @Query("SELECT * FROM calendar_events WHERE date >= :dayStart AND date <= :dayEnd ORDER BY time ASC")
+    fun getEventsByDate(dayStart: Long, dayEnd: Long): Flow<List<CalendarEventEntity>>
 
     @Query("SELECT * FROM calendar_events WHERE groupId = :groupId ORDER BY date ASC")
     fun getEventsByGroupId(groupId: String): Flow<List<CalendarEventEntity>>

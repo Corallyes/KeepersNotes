@@ -30,7 +30,8 @@ class ModuleDefaultNpcRepository @Inject constructor(
         alias: String = "",
         occupation: String = "",
         description: String = "",
-        truePurpose: String = ""
+        truePurpose: String = "",
+        gender: String = ""
     ): String {
         val id = UUID.randomUUID().toString()
         dao.insert(
@@ -41,7 +42,8 @@ class ModuleDefaultNpcRepository @Inject constructor(
                 alias = alias,
                 occupation = occupation,
                 description = description,
-                truePurpose = truePurpose
+                truePurpose = truePurpose,
+                gender = gender
             )
         )
         return id

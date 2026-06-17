@@ -2,6 +2,8 @@ package com.example.keepersnotes.ui.screen.groupdetail
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -10,6 +12,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -17,6 +20,9 @@ import com.example.keepersnotes.ui.component.CompactTopBar
 import com.example.keepersnotes.ui.component.RichTextEditor
 import com.example.keepersnotes.util.Chapter
 import com.example.keepersnotes.util.Constants
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -27,22 +33,24 @@ fun CreateMemoScreen(
     viewModel: CreateMemoViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val context = LocalContext.current
 
     LaunchedEffect(uiState.createdMemoId) {
         uiState.createdMemoId?.let { onCreated(it) }
     }
 
     val types = listOf(
-        Constants.MEMO_TYPE_GENERAL to "备忘",
         Constants.MEMO_TYPE_TODO to "待办",
-        Constants.MEMO_TYPE_CLUE to "线索",
-        Constants.MEMO_TYPE_PLOT to "剧情",
         Constants.MEMO_TYPE_REMINDER to "提醒",
-        Constants.MEMO_TYPE_RULE to "规则"
+        Constants.MEMO_TYPE_RULE to "规则笔记",
+        Constants.MEMO_TYPE_PLOT to "剧情笔记",
+        Constants.MEMO_TYPE_CLUE to "线索笔记",
+        Constants.MEMO_TYPE_HIDDEN to "暗线笔记"
     )
 
-    var showModuleSelector by remember { mutableStateOf(false) }
     var showChapterSelector by remember { mutableStateOf(false) }
+    var showDatePicker by remember { mutableStateOf(false) }
+    var showTimePicker by remember { mutableStateOf(false) }
 
     Scaffold(
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
@@ -61,6 +69,7 @@ fun CreateMemoScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
+                .verticalScroll(rememberScrollState())
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
@@ -106,42 +115,7 @@ fun CreateMemoScreen(
                 placeholder = "输入备忘内容，支持Markdown格式..."
             )
 
-            // 模组关联
-            Text("关联模组（可选）", style = MaterialTheme.typography.labelMedium)
-            OutlinedCard(
-                onClick = { showModuleSelector = true },
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(12.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Icon(
-                        Icons.Default.Book,
-                        contentDescription = null,
-                        modifier = Modifier.size(20.dp)
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        text = uiState.modules.find { it.moduleId == uiState.selectedModuleId }?.title
-                            ?: "选择关联的模组",
-                        style = MaterialTheme.typography.bodyMedium,
-                        modifier = Modifier.weight(1f)
-                    )
-                    if (uiState.selectedModuleId != null) {
-                        IconButton(
-                            onClick = { viewModel.selectModule(null) },
-                            modifier = Modifier.size(20.dp)
-                        ) {
-                            Icon(Icons.Default.Close, "清除", modifier = Modifier.size(16.dp))
-                        }
-                    }
-                }
-            }
-
-            // 章节选择（仅当选择了模组时显示）
+            // 章节选择（仅当团关联了模组时显示）
             if (uiState.selectedModuleId != null && uiState.chapters.isNotEmpty()) {
                 Text("关联章节（可选）", style = MaterialTheme.typography.labelMedium)
                 OutlinedCard(
@@ -177,15 +151,6 @@ fun CreateMemoScreen(
                 }
             }
 
-            // Hidden toggle
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Checkbox(
-                    checked = uiState.isHidden,
-                    onCheckedChange = viewModel::updateIsHidden
-                )
-                Text("暗线笔记（仅KP可见）")
-            }
-
             // Priority selector
             Text("优先级", style = MaterialTheme.typography.labelMedium)
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -198,10 +163,63 @@ fun CreateMemoScreen(
                 }
             }
 
+            // 提醒类型 - 定时通知选项
+            if (uiState.type == Constants.MEMO_TYPE_REMINDER) {
+                HorizontalDivider()
+                Text("定时通知", style = MaterialTheme.typography.labelMedium)
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Switch(
+                        checked = uiState.isNotificationEnabled,
+                        onCheckedChange = viewModel::updateNotificationEnabled
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("开启定时提醒")
+                }
+
+                if (uiState.isNotificationEnabled) {
+                    Spacer(modifier = Modifier.height(4.dp))
+
+                    // 日期选择
+                    val dateFormat = SimpleDateFormat("yyyy年MM月dd日", Locale.getDefault())
+                    val dateText = uiState.notificationDate?.let { dateFormat.format(Date(it)) } ?: "选择日期"
+                    OutlinedCard(
+                        onClick = { showDatePicker = true },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth().padding(12.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(Icons.Default.DateRange, null, modifier = Modifier.size(20.dp))
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(dateText, style = MaterialTheme.typography.bodyMedium)
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(4.dp))
+
+                    // 时间选择
+                    val timeText = String.format("%02d:%02d", uiState.notificationHour, uiState.notificationMinute)
+                    OutlinedCard(
+                        onClick = { showTimePicker = true },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth().padding(12.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(Icons.Default.Schedule, null, modifier = Modifier.size(20.dp))
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(timeText, style = MaterialTheme.typography.bodyMedium)
+                        }
+                    }
+                }
+            }
+
             Spacer(modifier = Modifier.weight(1f))
 
             Button(
-                onClick = viewModel::submit,
+                onClick = { viewModel.submit(context) },
                 enabled = !uiState.isSubmitting,
                 modifier = Modifier.fillMaxWidth()
             ) {
@@ -214,44 +232,6 @@ fun CreateMemoScreen(
         }
     }
 
-    // 模组选择对话框
-    if (showModuleSelector) {
-        AlertDialog(
-            onDismissRequest = { showModuleSelector = false },
-            title = { Text("选择模组") },
-            text = {
-                if (uiState.modules.isEmpty()) {
-                    Text("暂无可用模组")
-                } else {
-                    Column {
-                        uiState.modules.forEach { module ->
-                            ListItem(
-                                headlineContent = { Text(module.title) },
-                                supportingContent = {
-                                    if (module.author.isNotBlank()) {
-                                        Text(module.author)
-                                    }
-                                },
-                                leadingContent = {
-                                    Icon(Icons.Default.Book, null)
-                                },
-                                modifier = Modifier.clickable {
-                                    viewModel.selectModule(module.moduleId)
-                                    showModuleSelector = false
-                                }
-                            )
-                        }
-                    }
-                }
-            },
-            confirmButton = {
-                TextButton(onClick = { showModuleSelector = false }) {
-                    Text("取消")
-                }
-            }
-        )
-    }
-
     // 章节选择对话框
     if (showChapterSelector) {
         ChapterSelectorDialog(
@@ -262,6 +242,54 @@ fun CreateMemoScreen(
                 showChapterSelector = false
             },
             onDismiss = { showChapterSelector = false }
+        )
+    }
+
+    // 日期选择对话框
+    if (showDatePicker) {
+        val datePickerState = rememberDatePickerState(
+            initialSelectedDateMillis = uiState.notificationDate ?: System.currentTimeMillis()
+        )
+        DatePickerDialog(
+            onDismissRequest = { showDatePicker = false },
+            confirmButton = {
+                TextButton(onClick = {
+                    datePickerState.selectedDateMillis?.let { viewModel.updateNotificationDate(it) }
+                    showDatePicker = false
+                }) { Text("确定") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDatePicker = false }) { Text("取消") }
+            }
+        ) {
+            DatePicker(state = datePickerState)
+        }
+    }
+
+    // 时间选择对话框
+    if (showTimePicker) {
+        val timePickerState = rememberTimePickerState(
+            initialHour = uiState.notificationHour,
+            initialMinute = uiState.notificationMinute,
+            is24Hour = true
+        )
+        AlertDialog(
+            onDismissRequest = { showTimePicker = false },
+            title = { Text("选择时间") },
+            text = {
+                Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                    TimePicker(state = timePickerState)
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    viewModel.updateNotificationTime(timePickerState.hour, timePickerState.minute)
+                    showTimePicker = false
+                }) { Text("确定") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showTimePicker = false }) { Text("取消") }
+            }
         )
     }
 }

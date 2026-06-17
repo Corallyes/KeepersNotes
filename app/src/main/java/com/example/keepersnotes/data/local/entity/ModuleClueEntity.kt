@@ -26,6 +26,7 @@ data class ModuleClueEntity(
     val description: String = "",
     val source: String = "",
     val isHidden: Boolean = false,
+    val color: Long = 0L,
     val sortOrder: Int = 0,
     val createTime: Long = System.currentTimeMillis()
 )

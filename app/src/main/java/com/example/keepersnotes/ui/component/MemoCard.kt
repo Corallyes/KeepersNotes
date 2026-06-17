@@ -70,7 +70,7 @@ fun MemoCard(
                         text = memo.content,
                         style = MaterialTheme.typography.bodySmall,
                         textDecoration = if (memo.isCompleted) TextDecoration.LineThrough else null,
-                        maxLines = 3,
+                        maxLines = 6,
                         overflow = TextOverflow.Ellipsis
                     )
                 }

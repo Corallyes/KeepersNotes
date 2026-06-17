@@ -16,6 +16,7 @@ import com.example.keepersnotes.navigation.BottomNavBar
 import com.example.keepersnotes.navigation.KeeperNotesNavGraph
 import com.example.keepersnotes.navigation.screen.Screen
 import com.example.keepersnotes.ui.theme.KeepersNotesTheme
+import com.example.keepersnotes.util.NotificationHelper
 import com.example.keepersnotes.util.ThemePreferences
 import dagger.hilt.android.AndroidEntryPoint
 
@@ -24,6 +25,7 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         applyLanguage(ThemePreferences.currentLanguage)
+        NotificationHelper.createNotificationChannel(this)
         enableEdgeToEdge()
         setContent {
             KeepersNotesTheme {
@@ -34,7 +36,9 @@ class MainActivity : ComponentActivity() {
                 val showBottomBar = currentRoute !in listOf(
                     Screen.Splash.route,
                     Screen.Brand.route
-                )
+                ) && currentRoute?.startsWith("module_reader/") != true
+                        && currentRoute?.startsWith("module_entity_list/") != true
+                        && currentRoute?.startsWith("module_relationship/") != true
 
                 Scaffold(
                     bottomBar = {

@@ -22,9 +22,6 @@ import com.example.keepersnotes.ui.screen.modulelibrary.ModuleLibraryScreen
 import com.example.keepersnotes.ui.screen.modulelibrary.ModuleReaderScreen
 import com.example.keepersnotes.ui.screen.modulelibrary.ModuleRelationshipScreen
 import com.example.keepersnotes.ui.screen.search.GlobalSearchScreen
-import com.example.keepersnotes.ui.screen.collection.CollectionDetailScreen
-import com.example.keepersnotes.ui.screen.collection.ArchiveReaderScreen
-import com.example.keepersnotes.ui.screen.collection.ImageViewerScreen
 import com.example.keepersnotes.ui.screen.profile.AnnouncementScreen
 import com.example.keepersnotes.ui.screen.profile.BackupScreen
 import com.example.keepersnotes.ui.screen.profile.HelpScreen
@@ -70,25 +67,23 @@ fun KeeperNotesNavGraph(navController: NavHostController, innerPadding: PaddingV
                 onGroupClick = { groupId -> navController.navigate(DetailScreen.groupDetail(groupId)) },
                 onCreateGroup = { navController.navigate(DetailScreen.CREATE_GROUP) },
                 onNavigateToCreatePc = { groupId -> navController.navigate(DetailScreen.createPc(groupId)) },
-                onNavigateToSearch = { navController.navigate(DetailScreen.GLOBAL_SEARCH) }
+                onNavigateToSearch = { navController.navigate(DetailScreen.GLOBAL_SEARCH) },
+                onNavigateToModuleLibrary = { navController.navigate(Screen.ModuleLibrary.route) }
             )
         }
 
         composable(Screen.GroupList.route) {
             GroupListScreen(
                 onGroupClick = { groupId -> navController.navigate(DetailScreen.groupDetail(groupId)) },
-                onCreateGroup = { navController.navigate(DetailScreen.CREATE_GROUP) }
+                onCreateGroup = { navController.navigate(DetailScreen.CREATE_GROUP) },
+                onEditGroup = { groupId -> navController.navigate(DetailScreen.groupDetail(groupId)) }
             )
         }
 
         composable(Screen.ModuleLibrary.route) {
             ModuleLibraryScreen(
-                onModuleClick = { moduleId, isCollection ->
-                    if (isCollection) {
-                        navController.navigate(DetailScreen.collectionDetail(moduleId))
-                    } else {
-                        navController.navigate(DetailScreen.moduleDetail(moduleId))
-                    }
+                onModuleClick = { moduleId, _ ->
+                    navController.navigate(DetailScreen.moduleDetail(moduleId))
                 }
             )
         }
@@ -242,52 +237,8 @@ fun KeeperNotesNavGraph(navController: NavHostController, innerPadding: PaddingV
                 onBack = { navController.popBackStack() },
                 onStartReading = { navController.navigate(DetailScreen.moduleReader(moduleId)) },
                 onNavigateToChapter = { chapterId -> navController.navigate(DetailScreen.moduleReader(moduleId, chapterId)) },
-                onImageClick = { imageIndex -> navController.navigate(DetailScreen.imageViewer(moduleId, imageIndex)) },
                 onNavigateToRelationship = { navController.navigate(DetailScreen.moduleRelationship(moduleId)) },
                 onNavigateToEntityList = { entityType -> navController.navigate(DetailScreen.moduleEntityList(moduleId, entityType)) }
-            )
-        }
-
-        // Collection detail
-        composable(
-            route = DetailScreen.COLLECTION_DETAIL,
-            arguments = listOf(navArgument("collectionId") { type = NavType.StringType })
-        ) { backStackEntry ->
-            val collectionId = backStackEntry.arguments?.getString("collectionId") ?: return@composable
-            CollectionDetailScreen(
-                collectionId = collectionId,
-                onBack = { navController.popBackStack() },
-                onArchiveClick = { archiveId -> navController.navigate(DetailScreen.archiveReader(archiveId)) },
-                onImageClick = { imageIndex -> navController.navigate(DetailScreen.imageViewer(collectionId, imageIndex)) }
-            )
-        }
-
-        // Archive reader
-        composable(
-            route = DetailScreen.ARCHIVE_READER,
-            arguments = listOf(navArgument("archiveId") { type = NavType.StringType })
-        ) { backStackEntry ->
-            val archiveId = backStackEntry.arguments?.getString("archiveId") ?: return@composable
-            ArchiveReaderScreen(
-                archiveId = archiveId,
-                onBack = { navController.popBackStack() }
-            )
-        }
-
-        // Image viewer
-        composable(
-            route = DetailScreen.IMAGE_VIEWER,
-            arguments = listOf(
-                navArgument("collectionId") { type = NavType.StringType },
-                navArgument("imageIndex") { type = NavType.IntType }
-            )
-        ) { backStackEntry ->
-            val collectionId = backStackEntry.arguments?.getString("collectionId") ?: return@composable
-            val imageIndex = backStackEntry.arguments?.getInt("imageIndex") ?: 0
-            ImageViewerScreen(
-                collectionId = collectionId,
-                initialIndex = imageIndex,
-                onBack = { navController.popBackStack() }
             )
         }
 
@@ -300,7 +251,10 @@ fun KeeperNotesNavGraph(navController: NavHostController, innerPadding: PaddingV
             CreatePcScreen(
                 groupId = groupId,
                 onBack = { navController.popBackStack() },
-                onCreated = { navController.popBackStack() }
+                onCreated = {
+                    navController.popBackStack()
+                    navController.navigate(DetailScreen.groupDetail(groupId))
+                }
             )
         }
 

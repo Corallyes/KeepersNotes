@@ -209,6 +209,7 @@ fun CalendarEventList(
                                     "session_start" -> Color(0xFF4CAF50)
                                     "session_end" -> Color(0xFFFF9800)
                                     "session" -> Color(0xFF2196F3)
+                                    "memo_reminder" -> Color(0xFFE91E63)
                                     else -> Color(0xFF9C27B0)
                                 }
                             )

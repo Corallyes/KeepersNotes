@@ -8,6 +8,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.example.keepersnotes.ui.component.CompactTopBar
+import com.example.keepersnotes.ui.screen.modulelibrary.Gender
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 
@@ -20,6 +21,7 @@ fun CreateNpcScreen(
     viewModel: CreateNpcViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    var genderExpanded by remember { mutableStateOf(false) }
 
     LaunchedEffect(uiState.createdNpcId) {
         uiState.createdNpcId?.let { onCreated(it) }
@@ -61,6 +63,31 @@ fun CreateNpcScreen(
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true
             )
+            // Gender selector
+            ExposedDropdownMenuBox(
+                expanded = genderExpanded,
+                onExpandedChange = { genderExpanded = it }
+            ) {
+                OutlinedTextField(
+                    value = Gender.fromKey(uiState.gender)?.label ?: "",
+                    onValueChange = {},
+                    readOnly = true,
+                    label = { Text("性别") },
+                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = genderExpanded) },
+                    modifier = Modifier.fillMaxWidth().menuAnchor()
+                )
+                ExposedDropdownMenu(
+                    expanded = genderExpanded,
+                    onDismissRequest = { genderExpanded = false }
+                ) {
+                    Gender.entries.forEach { g ->
+                        DropdownMenuItem(
+                            text = { Text(g.label) },
+                            onClick = { viewModel.updateGender(g.key); genderExpanded = false }
+                        )
+                    }
+                }
+            }
             OutlinedTextField(
                 value = uiState.occupation,
                 onValueChange = viewModel::updateOccupation,

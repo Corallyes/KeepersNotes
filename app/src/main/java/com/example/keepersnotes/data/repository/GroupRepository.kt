@@ -17,6 +17,8 @@ class GroupRepository @Inject constructor(
 
     fun getActiveGroupCount(): Flow<Int> = groupDao.getActiveGroupCount()
 
+    fun getCompletedGroupCount(): Flow<Int> = groupDao.getCompletedGroupCount()
+
     fun getGroupById(groupId: String): Flow<GroupEntity?> = groupDao.getGroupById(groupId)
 
     suspend fun getGroupByIdOnce(groupId: String): GroupEntity? = groupDao.getGroupByIdOnce(groupId)
