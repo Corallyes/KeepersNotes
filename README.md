@@ -1,32 +1,35 @@
-# 守密人笔记 (KeepersNotes)
+# KeepersNotes
 
-TRPG Keeper 辅助工具，帮助 Keeper 管理团务、模组、角色和 Session 记录。
+🌐 Language:
+[English](README.md) | [简体中文](README_zh-CN.md)
 
-## 功能
+A TRPG Keeper assistant tool for managing campaigns, modules, characters, and session records.
 
-- **团务管理** — 创建和管理 TRPG 团，支持 COC/DND/自定义系统
-- **角色卡管理** — PC 和 NPC 角色卡创建、编辑、关联
-- **Session 记录** — 记录每次 Session 的摘要和进度
-- **模组库** — 导入和阅读模组文档，支持章节导航
-- **日历与提醒** — 首页日历显示开团日程，支持闹钟和系统通知提醒
-- **关系图谱** — 可视化角色、场景、线索之间的关系
-- **笔记与待办** — KP 备忘录和待办事项管理
-- **深色模式** — 暖棕护眼配色，支持跟随系统/手动切换
-- **数据备份** — 本地数据导出与恢复
+## Features
 
-## 技术栈
+- **Campaign Management** — Create and manage TRPG campaigns, supports COC/DND/custom systems
+- **Character Cards** — Create, edit, and link PC and NPC character cards
+- **Session Records** — Record summaries and progress for each session
+- **Module Library** — Import and read module documents with chapter navigation
+- **Calendar & Reminders** — Home calendar shows session schedule, supports alarm and system notifications
+- **Relationship Graph** — Visualize relationships between characters, locations, and clues
+- **Notes & To-dos** — Keeper memo and to-do management
+- **Dark Mode** — Warm brown eye-friendly theme, supports system/manual toggle
+- **Data Backup** — Local data export and restore
+
+## Tech Stack
 
 - Kotlin + Jetpack Compose (Material 3)
-- Room Database + Hilt 依赖注入
-- MVVM 架构 (ViewModel + StateFlow)
-- AlarmManager / WorkManager 通知提醒
+- Room Database + Hilt Dependency Injection
+- MVVM Architecture (ViewModel + StateFlow)
+- AlarmManager / WorkManager Notifications
 
-## 联系我们
+## Contact
 
-如果你有建议、反馈或想参与项目，欢迎通过 [GitHub](https://github.com/Corallyes/KeepersNotes) 联系我。
+If you have suggestions, feedback, or want to contribute, feel free to reach out via [GitHub](https://github.com/Corallyes/KeepersNotes).
 
-## 许可证
+## License
 
-本项目采用 [CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/) 许可协议。
+This project is licensed under [CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/).
 
-您可以自由地共享和演绎本作品，但必须署名、不得用于商业目的、且须以相同方式共享。
+You are free to share and adapt this work, as long as you give attribution, do not use it for commercial purposes, and share under the same terms.
