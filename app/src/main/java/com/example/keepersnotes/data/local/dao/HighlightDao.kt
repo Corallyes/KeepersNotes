@@ -7,17 +7,32 @@ import kotlinx.coroutines.flow.Flow
 @Dao
 interface HighlightDao {
 
+    @Query("SELECT * FROM highlights")
+    fun getAll(): Flow<List<HighlightEntity>>
+
+    @Query("DELETE FROM highlights")
+    suspend fun deleteAll()
+
     @Query("SELECT * FROM highlights WHERE moduleId = :moduleId ORDER BY createTime DESC")
     fun getHighlightsByModule(moduleId: String): Flow<List<HighlightEntity>>
 
     @Query("SELECT * FROM highlights WHERE moduleId = :moduleId AND chapterId = :chapterId ORDER BY startIndex ASC")
     fun getHighlightsByChapter(moduleId: String, chapterId: String): Flow<List<HighlightEntity>>
 
+    @Query("SELECT * FROM highlights WHERE moduleId = :moduleId AND nodeId = :nodeId ORDER BY startIndex ASC")
+    fun getHighlightsByNode(moduleId: String, nodeId: String): Flow<List<HighlightEntity>>
+
+    @Query("SELECT * FROM highlights WHERE moduleId = :moduleId AND nodeId IS NOT NULL ORDER BY createTime DESC")
+    fun getNodeHighlightsByModule(moduleId: String): Flow<List<HighlightEntity>>
+
     @Query("SELECT * FROM highlights WHERE highlightId = :highlightId")
     suspend fun getHighlightById(highlightId: String): HighlightEntity?
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertHighlight(highlight: HighlightEntity)
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertAll(highlights: List<HighlightEntity>)
 
     @Update
     suspend fun updateHighlight(highlight: HighlightEntity)

@@ -7,6 +7,12 @@ import kotlinx.coroutines.flow.Flow
 @Dao
 interface CalendarEventDao {
 
+    @Query("SELECT * FROM calendar_events")
+    fun getAll(): Flow<List<CalendarEventEntity>>
+
+    @Query("DELETE FROM calendar_events")
+    suspend fun deleteAll()
+
     @Query("SELECT * FROM calendar_events WHERE date BETWEEN :startDate AND :endDate ORDER BY date ASC, time ASC")
     fun getEventsBetween(startDate: Long, endDate: Long): Flow<List<CalendarEventEntity>>
 

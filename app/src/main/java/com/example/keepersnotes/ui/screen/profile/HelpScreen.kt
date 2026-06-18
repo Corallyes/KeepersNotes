@@ -27,7 +27,6 @@ fun HelpScreen(
         FaqItem(question = LocalizedStrings.faq1Q, answer = LocalizedStrings.faq1A),
         FaqItem(question = LocalizedStrings.faq2Q, answer = LocalizedStrings.faq2A),
         FaqItem(question = LocalizedStrings.faq3Q, answer = LocalizedStrings.faq3A),
-        FaqItem(question = LocalizedStrings.faq4Q, answer = LocalizedStrings.faq4A),
         FaqItem(question = LocalizedStrings.faq5Q, answer = LocalizedStrings.faq5A),
         FaqItem(question = LocalizedStrings.faq6Q, answer = LocalizedStrings.faq6A),
         FaqItem(question = LocalizedStrings.faq7Q, answer = LocalizedStrings.faq7A),

@@ -17,6 +17,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.example.keepersnotes.data.local.entity.BookmarkEntity
+import com.example.keepersnotes.util.LocalizedStrings
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -41,12 +42,12 @@ fun BookmarkPanel(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    "书签",
+                    LocalizedStrings.bookmarkPanelTitle,
                     style = MaterialTheme.typography.titleLarge,
                     modifier = Modifier.weight(1f)
                 )
                 Text(
-                    "${bookmarks.size} 个",
+                    "${bookmarks.size}",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -70,12 +71,12 @@ fun BookmarkPanel(
                         )
                         Spacer(modifier = Modifier.height(8.dp))
                         Text(
-                            "暂无书签",
+                            LocalizedStrings.bookmarkNoBookmarks,
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                         Text(
-                            "点击工具栏的书签按钮添加",
+                            LocalizedStrings.bookmarkAddHint,
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -170,7 +171,7 @@ private fun BookmarkItem(
             ) {
                 Icon(
                     Icons.Default.Delete,
-                    contentDescription = "删除",
+                    contentDescription = LocalizedStrings.delete,
                     tint = MaterialTheme.colorScheme.error,
                     modifier = Modifier.size(18.dp)
                 )

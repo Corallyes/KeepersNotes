@@ -17,6 +17,7 @@ import com.example.keepersnotes.data.local.entity.ModuleOrganizationEntity
 import com.example.keepersnotes.data.local.entity.ModuleRelationshipEntity
 import com.example.keepersnotes.data.local.entity.ModuleClueEntity
 import com.example.keepersnotes.data.local.entity.ModuleEntity
+import com.example.keepersnotes.data.local.entity.DocumentNodeEntity
 import com.example.keepersnotes.data.local.entity.ReadingProgressEntity
 import com.example.keepersnotes.data.repository.AnnotationRepository
 import com.example.keepersnotes.data.repository.BookmarkRepository
@@ -28,6 +29,7 @@ import com.example.keepersnotes.data.repository.ModuleLocationRepository
 import com.example.keepersnotes.data.repository.ModuleOrganizationRepository
 import com.example.keepersnotes.data.repository.ModuleRelationshipRepository
 import com.example.keepersnotes.data.repository.ModuleClueRepository
+import com.example.keepersnotes.data.repository.DocumentNodeRepository
 import com.example.keepersnotes.data.repository.ModuleRepository
 import com.example.keepersnotes.data.repository.KpMemoRepository
 import com.example.keepersnotes.data.repository.ReadingProgressRepository
@@ -43,6 +45,7 @@ import javax.inject.Inject
 data class ModuleDetailUiState(
     val module: ModuleEntity? = null,
     val chapters: List<Chapter> = emptyList(),
+    val documentHeadings: List<DocumentNodeEntity> = emptyList(),
     val highlights: List<HighlightEntity> = emptyList(),
     val annotations: List<AnnotationEntity> = emptyList(),
     val bookmarks: List<BookmarkEntity> = emptyList(),
@@ -63,6 +66,7 @@ class ModuleDetailViewModel @Inject constructor(
     application: Application,
     savedStateHandle: SavedStateHandle,
     private val moduleRepository: ModuleRepository,
+    private val documentNodeRepository: DocumentNodeRepository,
     private val highlightRepository: HighlightRepository,
     private val annotationRepository: AnnotationRepository,
     private val bookmarkRepository: BookmarkRepository,
@@ -99,6 +103,10 @@ class ModuleDetailViewModel @Inject constructor(
                         _uiState.update { it.copy(isLoading = false) }
                     }
                 }
+                .launchIn(viewModelScope)
+
+            documentNodeRepository.getHeadingsByModule(moduleId)
+                .onEach { headings -> _uiState.update { it.copy(documentHeadings = headings) } }
                 .launchIn(viewModelScope)
 
             highlightRepository.getHighlightsByModule(moduleId)

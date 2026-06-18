@@ -11,6 +11,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.example.keepersnotes.ui.component.CompactTopBar
+import com.example.keepersnotes.util.LocalizedStrings
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import java.text.SimpleDateFormat
@@ -29,15 +30,15 @@ fun SessionDetailScreen(
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
         topBar = {
             CompactTopBar(
-                title = session?.let { "Session ${it.sessionNumber}" } ?: "Session详情",
+                title = session?.let { "${LocalizedStrings.session} ${it.sessionNumber}" } ?: LocalizedStrings.sessionDetail,
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "返回")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = LocalizedStrings.back)
                     }
                 },
                 actions = {
                     IconButton(onClick = { /* TODO: edit session */ }) {
-                        Icon(Icons.Default.Edit, contentDescription = "编辑")
+                        Icon(Icons.Default.Edit, contentDescription = LocalizedStrings.edit)
                     }
                 }
             )
@@ -46,7 +47,7 @@ fun SessionDetailScreen(
         val currentSession = session
         if (currentSession == null) {
             Box(modifier = Modifier.fillMaxSize().padding(padding)) {
-                Text("加载中...", modifier = Modifier.padding(16.dp))
+                Text(LocalizedStrings.groupLoading, modifier = Modifier.padding(16.dp))
             }
             return@Scaffold
         }
@@ -62,10 +63,10 @@ fun SessionDetailScreen(
             // Session info
             Card(modifier = Modifier.fillMaxWidth()) {
                 Column(modifier = Modifier.padding(16.dp)) {
-                    Text("Session ${currentSession.sessionNumber}", style = MaterialTheme.typography.headlineSmall)
-                    Text("日期: ${formatDate(currentSession.date)}", style = MaterialTheme.typography.bodyMedium)
+                    Text("${LocalizedStrings.session} ${currentSession.sessionNumber}", style = MaterialTheme.typography.headlineSmall)
+                    Text("${LocalizedStrings.sessionDate}: ${formatDate(currentSession.date)}", style = MaterialTheme.typography.bodyMedium)
                     if (currentSession.durationMinutes > 0) {
-                        Text("时长: ${currentSession.durationMinutes / 60}h${currentSession.durationMinutes % 60}min", style = MaterialTheme.typography.bodyMedium)
+                        Text("${LocalizedStrings.sessionDuration}: ${currentSession.durationMinutes / 60}h${currentSession.durationMinutes % 60}min", style = MaterialTheme.typography.bodyMedium)
                     }
                 }
             }
@@ -74,7 +75,7 @@ fun SessionDetailScreen(
             if (currentSession.summary.isNotBlank()) {
                 Card(modifier = Modifier.fillMaxWidth()) {
                     Column(modifier = Modifier.padding(16.dp)) {
-                        Text("本场摘要", style = MaterialTheme.typography.titleSmall)
+                        Text(LocalizedStrings.sessionSummary, style = MaterialTheme.typography.titleSmall)
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(currentSession.summary, style = MaterialTheme.typography.bodyMedium)
                     }
@@ -84,7 +85,7 @@ fun SessionDetailScreen(
             if (currentSession.nextSessionNotes.isNotBlank()) {
                 Card(modifier = Modifier.fillMaxWidth()) {
                     Column(modifier = Modifier.padding(16.dp)) {
-                        Text("下局预告", style = MaterialTheme.typography.titleSmall)
+                        Text(LocalizedStrings.sessionNextNotes, style = MaterialTheme.typography.titleSmall)
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(currentSession.nextSessionNotes, style = MaterialTheme.typography.bodyMedium)
                     }

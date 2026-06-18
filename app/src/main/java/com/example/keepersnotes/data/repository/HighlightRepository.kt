@@ -42,6 +42,30 @@ class HighlightRepository @Inject constructor(
         return highlight
     }
 
+    suspend fun addNodeHighlight(
+        moduleId: String,
+        nodeId: String,
+        startIndex: Int,
+        endIndex: Int,
+        selectedText: String,
+        color: Long = 0xFFFFEB3B
+    ): HighlightEntity {
+        val highlight = HighlightEntity(
+            highlightId = UUID.randomUUID().toString(),
+            moduleId = moduleId,
+            nodeId = nodeId,
+            startIndex = startIndex,
+            endIndex = endIndex,
+            selectedText = selectedText,
+            color = color
+        )
+        highlightDao.insertHighlight(highlight)
+        return highlight
+    }
+
+    fun getNodeHighlightsByModule(moduleId: String): Flow<List<HighlightEntity>> =
+        highlightDao.getNodeHighlightsByModule(moduleId)
+
     suspend fun updateHighlight(highlight: HighlightEntity) =
         highlightDao.updateHighlight(highlight)
 

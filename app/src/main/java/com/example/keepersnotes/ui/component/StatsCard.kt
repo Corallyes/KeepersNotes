@@ -11,6 +11,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.example.keepersnotes.util.LocalizedStrings
 
 @Composable
 fun StatsCard(
@@ -67,25 +68,25 @@ fun StatsCardRow(
     ) {
         StatsCard(
             icon = Icons.Default.CheckCircle,
-            label = "已完成",
+            label = LocalizedStrings.homeCompleted,
             value = "$completedGroupCount",
             modifier = Modifier.weight(1f)
         )
         StatsCard(
             icon = Icons.Default.People,
-            label = "进行中",
+            label = LocalizedStrings.homeActive,
             value = "$activeGroupCount",
             modifier = Modifier.weight(1f)
         )
         StatsCard(
             icon = Icons.Default.DateRange,
-            label = "待开团",
+            label = LocalizedStrings.homeUpcoming,
             value = "$upcomingCount",
             modifier = Modifier.weight(1f)
         )
         StatsCard(
             icon = Icons.Default.Schedule,
-            label = "本周",
+            label = LocalizedStrings.homeThisWeek,
             value = "$weeklySessionCount",
             modifier = Modifier.weight(1f)
         )

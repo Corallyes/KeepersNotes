@@ -4,15 +4,14 @@ import android.app.AlarmManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
-import android.os.Build
+import com.example.keepersnotes.MainActivity
 import androidx.work.CoroutineWorker
-import androidx.work.ListenableWorker
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.WorkerParameters
 import androidx.work.workDataOf
 import com.example.keepersnotes.data.local.entity.CalendarEventEntity
-import java.text.SimpleDateFormat
+import com.example.keepersnotes.util.LocalizedStrings
 import java.util.*
 import java.util.concurrent.TimeUnit
 
@@ -92,10 +91,10 @@ object ReminderScheduler {
         if (triggerTime <= System.currentTimeMillis()) return
 
         val intent = Intent(context, AlarmReceiver::class.java).apply {
-            putExtra(AlarmReceiver.EXTRA_TITLE, "闹钟提醒")
-            putExtra(AlarmReceiver.EXTRA_MESSAGE, "${event.title} 将在 ${minutesBefore} 分钟后开始")
-            putExtra(AlarmReceiver.EXTRA_CHANNEL_ID, NotificationHelper.CHANNEL_ID_ALARM)
+            putExtra(AlarmReceiver.EXTRA_TITLE, event.title)
+            putExtra(AlarmReceiver.EXTRA_IS_ALARM, true)
             putExtra(AlarmReceiver.EXTRA_NOTIFICATION_ID, event.eventId.hashCode())
+            putExtra(AlarmReceiver.EXTRA_EVENT_TIME, eventTime)
         }
 
         val pendingIntent = PendingIntent.getBroadcast(
@@ -107,15 +106,15 @@ object ReminderScheduler {
 
         val alarmManager = context.getSystemService(AlarmManager::class.java)
         try {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                if (alarmManager.canScheduleExactAlarms()) {
-                    alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerTime, pendingIntent)
-                } else {
-                    alarmManager.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerTime, pendingIntent)
-                }
-            } else {
-                alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerTime, pendingIntent)
-            }
+            val showIntent = PendingIntent.getActivity(
+                context, event.eventId.hashCode() + 20000,
+                Intent(context, MainActivity::class.java),
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            )
+            alarmManager.setAlarmClock(
+                AlarmManager.AlarmClockInfo(triggerTime, showIntent),
+                pendingIntent
+            )
         } catch (_: SecurityException) {
             alarmManager.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerTime, pendingIntent)
         }
@@ -126,8 +125,8 @@ object ReminderScheduler {
         if (delay <= 0) return
 
         val data = workDataOf(
-            "title" to "系统通知",
-            "message" to "${event.title} 将在 ${minutesBefore} 分钟后开始",
+            "title" to LocalizedStrings.systemNotificationTitle,
+            "message" to LocalizedStrings.alarmReminderMessage(event.title, minutesBefore),
             "notification_id" to (event.eventId.hashCode() + 1)
         )
 
@@ -190,7 +189,6 @@ class ReminderWorker(
 
         NotificationHelper.showNotification(
             context = applicationContext,
-            channelId = NotificationHelper.CHANNEL_ID_SYSTEM,
             title = title,
             message = message,
             notificationId = notificationId

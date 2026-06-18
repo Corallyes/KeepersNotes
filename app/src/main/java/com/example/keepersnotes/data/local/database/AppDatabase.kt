@@ -27,9 +27,10 @@ import com.example.keepersnotes.data.local.entity.*
         ModuleRelationshipEntity::class,
         ModuleClueEntity::class,
         GroupRelationshipEntity::class,
-        CalendarEventEntity::class
+        CalendarEventEntity::class,
+        DocumentNodeEntity::class
     ],
-    version = 13,
+    version = 18,
     exportSchema = true
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -41,6 +42,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun kpMemoDao(): KpMemoDao
     abstract fun archiveDao(): ArchiveDao
     abstract fun imageDao(): ImageDao
+    abstract fun imageGroupDao(): ImageGroupDao
     abstract fun highlightDao(): HighlightDao
     abstract fun annotationDao(): AnnotationDao
     abstract fun readingProgressDao(): ReadingProgressDao
@@ -54,4 +56,5 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun moduleClueDao(): ModuleClueDao
     abstract fun groupRelationshipDao(): GroupRelationshipDao
     abstract fun calendarEventDao(): CalendarEventDao
+    abstract fun documentNodeDao(): DocumentNodeDao
 }

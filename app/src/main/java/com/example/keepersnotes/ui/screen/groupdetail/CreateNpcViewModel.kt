@@ -4,6 +4,7 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.keepersnotes.data.repository.NpcRepository
+import com.example.keepersnotes.util.LocalizedStrings
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -62,7 +63,7 @@ class CreateNpcViewModel @Inject constructor(
     fun submit() {
         val state = _uiState.value
         if (state.name.isBlank()) {
-            _uiState.update { it.copy(nameError = "请输入NPC名称") }
+            _uiState.update { it.copy(nameError = LocalizedStrings.npcNameRequired) }
             return
         }
         _uiState.update { it.copy(isSubmitting = true) }

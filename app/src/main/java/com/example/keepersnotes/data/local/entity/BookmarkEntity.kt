@@ -15,13 +15,14 @@ import androidx.room.PrimaryKey
             onDelete = ForeignKey.CASCADE
         )
     ],
-    indices = [Index("moduleId"), Index("chapterId")]
+    indices = [Index("moduleId"), Index("chapterId"), Index("nodeId")]
 )
 data class BookmarkEntity(
     @PrimaryKey
     val bookmarkId: String,
     val moduleId: String,
-    val chapterId: String,
+    val chapterId: String = "",
+    val nodeId: String? = null,
     val chapterTitle: String = "",
     val selectedText: String = "",
     val note: String = "",

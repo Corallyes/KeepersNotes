@@ -1,6 +1,8 @@
 package com.example.keepersnotes.ui.screen.groupdetail
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
@@ -12,6 +14,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.keepersnotes.ui.component.CompactTopBar
 import com.example.keepersnotes.ui.screen.modulelibrary.Gender
 import com.example.keepersnotes.util.Constants
+import com.example.keepersnotes.util.LocalizedStrings
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -32,10 +35,10 @@ fun CreatePcScreen(
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
         topBar = {
             CompactTopBar(
-                title = "添加PC",
+                title = LocalizedStrings.pcAdd,
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "返回")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = LocalizedStrings.back)
                     }
                 }
             )
@@ -45,13 +48,14 @@ fun CreatePcScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
+                .verticalScroll(rememberScrollState())
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             OutlinedTextField(
                 value = uiState.playerName,
                 onValueChange = viewModel::updatePlayerName,
-                label = { Text("玩家昵称") },
+                label = { Text(LocalizedStrings.pcPlayerNickname) },
                 isError = uiState.playerNameError != null,
                 supportingText = uiState.playerNameError?.let { { Text(it) } },
                 modifier = Modifier.fillMaxWidth(),
@@ -60,7 +64,7 @@ fun CreatePcScreen(
             OutlinedTextField(
                 value = uiState.characterName,
                 onValueChange = viewModel::updateCharacterName,
-                label = { Text("角色名称") },
+                label = { Text(LocalizedStrings.pcCharName) },
                 isError = uiState.characterNameError != null,
                 supportingText = uiState.characterNameError?.let { { Text(it) } },
                 modifier = Modifier.fillMaxWidth(),
@@ -68,7 +72,7 @@ fun CreatePcScreen(
             )
 
             // System selector
-            Text("游戏系统", style = MaterialTheme.typography.labelMedium)
+            Text(LocalizedStrings.pcSystem, style = MaterialTheme.typography.labelMedium)
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 listOf(Constants.SYSTEM_COC7, Constants.SYSTEM_DND5E).forEach { s ->
                     FilterChip(
@@ -85,10 +89,10 @@ fun CreatePcScreen(
                 onExpandedChange = { genderExpanded = it }
             ) {
                 OutlinedTextField(
-                    value = Gender.fromKey(uiState.gender)?.label ?: "",
+                    value = Gender.fromKey(uiState.gender)?.labelRes() ?: "",
                     onValueChange = {},
                     readOnly = true,
-                    label = { Text("性别") },
+                    label = { Text(LocalizedStrings.pcGender) },
                     trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = genderExpanded) },
                     modifier = Modifier.fillMaxWidth().menuAnchor()
                 )
@@ -98,7 +102,7 @@ fun CreatePcScreen(
                 ) {
                     Gender.entries.forEach { g ->
                         DropdownMenuItem(
-                            text = { Text(g.label) },
+                            text = { Text(g.labelRes()) },
                             onClick = { viewModel.updateGender(g.key); genderExpanded = false }
                         )
                     }
@@ -109,14 +113,14 @@ fun CreatePcScreen(
                 OutlinedTextField(
                     value = uiState.hpMax,
                     onValueChange = viewModel::updateHpMax,
-                    label = { Text("HP上限") },
+                    label = { Text("HP ${LocalizedStrings.pcMax}") },
                     modifier = Modifier.weight(1f),
                     singleLine = true
                 )
                 OutlinedTextField(
                     value = uiState.sanMax,
                     onValueChange = viewModel::updateSanMax,
-                    label = { Text("SAN上限") },
+                    label = { Text("SAN ${LocalizedStrings.pcMax}") },
                     modifier = Modifier.weight(1f),
                     singleLine = true
                 )
@@ -132,7 +136,7 @@ fun CreatePcScreen(
                 if (uiState.isSubmitting) {
                     CircularProgressIndicator(modifier = Modifier.size(20.dp))
                 } else {
-                    Text("创建")
+                    Text(LocalizedStrings.create)
                 }
             }
         }

@@ -20,6 +20,7 @@ import com.example.keepersnotes.ui.component.CompactTopBar
 import com.example.keepersnotes.ui.component.RichTextEditor
 import com.example.keepersnotes.util.Chapter
 import com.example.keepersnotes.util.Constants
+import com.example.keepersnotes.util.LocalizedStrings
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -40,12 +41,11 @@ fun CreateMemoScreen(
     }
 
     val types = listOf(
-        Constants.MEMO_TYPE_TODO to "待办",
-        Constants.MEMO_TYPE_REMINDER to "提醒",
-        Constants.MEMO_TYPE_RULE to "规则笔记",
-        Constants.MEMO_TYPE_PLOT to "剧情笔记",
-        Constants.MEMO_TYPE_CLUE to "线索笔记",
-        Constants.MEMO_TYPE_HIDDEN to "暗线笔记"
+        Constants.MEMO_TYPE_TODO to LocalizedStrings.memoType(Constants.MEMO_TYPE_TODO),
+        Constants.MEMO_TYPE_REMINDER to LocalizedStrings.memoType(Constants.MEMO_TYPE_REMINDER),
+        Constants.MEMO_TYPE_RULE to LocalizedStrings.memoType(Constants.MEMO_TYPE_RULE),
+        Constants.MEMO_TYPE_PLOT to LocalizedStrings.memoType(Constants.MEMO_TYPE_PLOT),
+        Constants.MEMO_TYPE_CLUE to LocalizedStrings.memoType(Constants.MEMO_TYPE_CLUE)
     )
 
     var showChapterSelector by remember { mutableStateOf(false) }
@@ -56,10 +56,10 @@ fun CreateMemoScreen(
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
         topBar = {
             CompactTopBar(
-                title = "添加备忘",
+                title = LocalizedStrings.memoAdd,
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "返回")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = LocalizedStrings.back)
                     }
                 }
             )
@@ -74,7 +74,7 @@ fun CreateMemoScreen(
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             // Type selector
-            Text("类型", style = MaterialTheme.typography.labelMedium)
+            Text(LocalizedStrings.memoTypeLabel, style = MaterialTheme.typography.labelMedium)
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 types.take(3).forEach { (value, label) ->
                     FilterChip(
@@ -97,7 +97,7 @@ fun CreateMemoScreen(
             OutlinedTextField(
                 value = uiState.title,
                 onValueChange = viewModel::updateTitle,
-                label = { Text("标题") },
+                label = { Text(LocalizedStrings.memoTitle) },
                 isError = uiState.titleError != null,
                 supportingText = uiState.titleError?.let { { Text(it) } },
                 modifier = Modifier.fillMaxWidth(),
@@ -105,19 +105,19 @@ fun CreateMemoScreen(
             )
 
             // 富文本编辑器
-            Text("内容", style = MaterialTheme.typography.labelMedium)
+            Text(LocalizedStrings.memoContent, style = MaterialTheme.typography.labelMedium)
             RichTextEditor(
                 value = uiState.content,
                 onValueChange = viewModel::updateContent,
                 modifier = Modifier
                     .fillMaxWidth()
                     .heightIn(min = 150.dp),
-                placeholder = "输入备忘内容，支持Markdown格式..."
+                placeholder = LocalizedStrings.memoContentPlaceholder
             )
 
             // 章节选择（仅当团关联了模组时显示）
             if (uiState.selectedModuleId != null && uiState.chapters.isNotEmpty()) {
-                Text("关联章节（可选）", style = MaterialTheme.typography.labelMedium)
+                Text(LocalizedStrings.memoLinkedChapter, style = MaterialTheme.typography.labelMedium)
                 OutlinedCard(
                     onClick = { showChapterSelector = true },
                     modifier = Modifier.fillMaxWidth()
@@ -135,7 +135,7 @@ fun CreateMemoScreen(
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
-                            text = uiState.selectedChapterTitle.ifBlank { "选择关联的章节" },
+                            text = uiState.selectedChapterTitle.ifBlank { LocalizedStrings.memoSelectChapter },
                             style = MaterialTheme.typography.bodyMedium,
                             modifier = Modifier.weight(1f)
                         )
@@ -144,7 +144,7 @@ fun CreateMemoScreen(
                                 onClick = { viewModel.selectChapter("", "") },
                                 modifier = Modifier.size(20.dp)
                             ) {
-                                Icon(Icons.Default.Close, "清除", modifier = Modifier.size(16.dp))
+                                Icon(Icons.Default.Close, LocalizedStrings.clear, modifier = Modifier.size(16.dp))
                             }
                         }
                     }
@@ -152,9 +152,9 @@ fun CreateMemoScreen(
             }
 
             // Priority selector
-            Text("优先级", style = MaterialTheme.typography.labelMedium)
+            Text(LocalizedStrings.memoPriority, style = MaterialTheme.typography.labelMedium)
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                listOf(0 to "普通", 1 to "重要", 2 to "紧急").forEach { (value, label) ->
+                listOf(0 to LocalizedStrings.memoPriorityNormal, 1 to LocalizedStrings.memoPriorityImportant, 2 to LocalizedStrings.memoPriorityUrgent).forEach { (value, label) ->
                     FilterChip(
                         selected = uiState.priority == value,
                         onClick = { viewModel.updatePriority(value) },
@@ -166,22 +166,22 @@ fun CreateMemoScreen(
             // 提醒类型 - 定时通知选项
             if (uiState.type == Constants.MEMO_TYPE_REMINDER) {
                 HorizontalDivider()
-                Text("定时通知", style = MaterialTheme.typography.labelMedium)
+                Text(LocalizedStrings.memoNotification, style = MaterialTheme.typography.labelMedium)
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Switch(
                         checked = uiState.isNotificationEnabled,
                         onCheckedChange = viewModel::updateNotificationEnabled
                     )
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text("开启定时提醒")
+                    Text(LocalizedStrings.memoNotificationEnable)
                 }
 
                 if (uiState.isNotificationEnabled) {
                     Spacer(modifier = Modifier.height(4.dp))
 
                     // 日期选择
-                    val dateFormat = SimpleDateFormat("yyyy年MM月dd日", Locale.getDefault())
-                    val dateText = uiState.notificationDate?.let { dateFormat.format(Date(it)) } ?: "选择日期"
+                    val dateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+                    val dateText = uiState.notificationDate?.let { dateFormat.format(Date(it)) } ?: LocalizedStrings.memoSelectDate
                     OutlinedCard(
                         onClick = { showDatePicker = true },
                         modifier = Modifier.fillMaxWidth()
@@ -200,6 +200,7 @@ fun CreateMemoScreen(
 
                     // 时间选择
                     val timeText = String.format("%02d:%02d", uiState.notificationHour, uiState.notificationMinute)
+                    Text(LocalizedStrings.memoSelectTime, style = MaterialTheme.typography.labelMedium)
                     OutlinedCard(
                         onClick = { showTimePicker = true },
                         modifier = Modifier.fillMaxWidth()
@@ -226,7 +227,7 @@ fun CreateMemoScreen(
                 if (uiState.isSubmitting) {
                     CircularProgressIndicator(modifier = Modifier.size(20.dp))
                 } else {
-                    Text("保存")
+                    Text(LocalizedStrings.save)
                 }
             }
         }
@@ -256,10 +257,10 @@ fun CreateMemoScreen(
                 TextButton(onClick = {
                     datePickerState.selectedDateMillis?.let { viewModel.updateNotificationDate(it) }
                     showDatePicker = false
-                }) { Text("确定") }
+                }) { Text(LocalizedStrings.confirm) }
             },
             dismissButton = {
-                TextButton(onClick = { showDatePicker = false }) { Text("取消") }
+                TextButton(onClick = { showDatePicker = false }) { Text(LocalizedStrings.cancel) }
             }
         ) {
             DatePicker(state = datePickerState)
@@ -275,7 +276,7 @@ fun CreateMemoScreen(
         )
         AlertDialog(
             onDismissRequest = { showTimePicker = false },
-            title = { Text("选择时间") },
+            title = { Text(LocalizedStrings.groupSelectTime) },
             text = {
                 Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
                     TimePicker(state = timePickerState)
@@ -285,10 +286,10 @@ fun CreateMemoScreen(
                 TextButton(onClick = {
                     viewModel.updateNotificationTime(timePickerState.hour, timePickerState.minute)
                     showTimePicker = false
-                }) { Text("确定") }
+                }) { Text(LocalizedStrings.confirm) }
             },
             dismissButton = {
-                TextButton(onClick = { showTimePicker = false }) { Text("取消") }
+                TextButton(onClick = { showTimePicker = false }) { Text(LocalizedStrings.cancel) }
             }
         )
     }
@@ -303,7 +304,7 @@ private fun ChapterSelectorDialog(
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("选择章节") },
+        title = { Text(LocalizedStrings.memoSelectChapter) },
         text = {
             LazyColumn {
                 chapters.forEach { chapter ->
@@ -318,7 +319,7 @@ private fun ChapterSelectorDialog(
         },
         confirmButton = {
             TextButton(onClick = onDismiss) {
-                Text("取消")
+                Text(LocalizedStrings.cancel)
             }
         }
     )

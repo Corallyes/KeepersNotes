@@ -13,6 +13,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.example.keepersnotes.ui.component.CompactTopBar
+import com.example.keepersnotes.util.LocalizedStrings
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 
@@ -34,10 +35,10 @@ fun CreateSessionScreen(
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
         topBar = {
             CompactTopBar(
-                title = "添加记录",
+                title = LocalizedStrings.sessionAddRecord,
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "返回")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = LocalizedStrings.back)
                     }
                 }
             )
@@ -56,7 +57,7 @@ fun CreateSessionScreen(
                 OutlinedTextField(
                     value = uiState.durationMinutes,
                     onValueChange = viewModel::updateDurationMinutes,
-                    label = { Text("时长（分钟）") },
+                    label = { Text(LocalizedStrings.sessionDurationMinutes) },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true
                 )
@@ -64,12 +65,12 @@ fun CreateSessionScreen(
 
             // PC participant multi-selector
             item {
-                Text("参与PC", style = MaterialTheme.typography.labelMedium)
+                Text(LocalizedStrings.sessionParticipants, style = MaterialTheme.typography.labelMedium)
             }
             if (uiState.pcs.isEmpty()) {
                 item {
                     Text(
-                        "该团暂无PC角色",
+                        LocalizedStrings.sessionNoPcs,
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -101,7 +102,7 @@ fun CreateSessionScreen(
                 OutlinedTextField(
                     value = uiState.summary,
                     onValueChange = viewModel::updateSummary,
-                    label = { Text("本场摘要") },
+                    label = { Text(LocalizedStrings.sessionSummary) },
                     modifier = Modifier.fillMaxWidth(),
                     minLines = 5
                 )
@@ -109,14 +110,14 @@ fun CreateSessionScreen(
 
             // Important events
             item {
-                Text("重要事件", style = MaterialTheme.typography.labelMedium)
+                Text(LocalizedStrings.sessionImportantEvents, style = MaterialTheme.typography.labelMedium)
             }
             itemsIndexed(uiState.importantEvents) { index, event ->
                 ListItem(
                     headlineContent = { Text(event) },
                     trailingContent = {
                         IconButton(onClick = { viewModel.removeEvent(index) }) {
-                            Icon(Icons.Default.Close, contentDescription = "删除", modifier = Modifier.size(18.dp))
+                            Icon(Icons.Default.Close, contentDescription = LocalizedStrings.delete, modifier = Modifier.size(18.dp))
                         }
                     }
                 )
@@ -130,26 +131,26 @@ fun CreateSessionScreen(
                     OutlinedTextField(
                         value = uiState.newEventText,
                         onValueChange = viewModel::updateNewEventText,
-                        placeholder = { Text("添加重要事件...") },
+                        placeholder = { Text(LocalizedStrings.sessionAddEvent) },
                         modifier = Modifier.weight(1f),
                         singleLine = true
                     )
                     IconButton(onClick = viewModel::addEvent) {
-                        Icon(Icons.Default.Add, contentDescription = "添加")
+                        Icon(Icons.Default.Add, contentDescription = LocalizedStrings.add)
                     }
                 }
             }
 
             // Clues found
             item {
-                Text("发现线索", style = MaterialTheme.typography.labelMedium)
+                Text(LocalizedStrings.sessionCluesFound, style = MaterialTheme.typography.labelMedium)
             }
             itemsIndexed(uiState.cluesFound) { index, clue ->
                 ListItem(
                     headlineContent = { Text(clue) },
                     trailingContent = {
                         IconButton(onClick = { viewModel.removeClue(index) }) {
-                            Icon(Icons.Default.Close, contentDescription = "删除", modifier = Modifier.size(18.dp))
+                            Icon(Icons.Default.Close, contentDescription = LocalizedStrings.delete, modifier = Modifier.size(18.dp))
                         }
                     }
                 )
@@ -163,12 +164,12 @@ fun CreateSessionScreen(
                     OutlinedTextField(
                         value = uiState.newClueText,
                         onValueChange = viewModel::updateNewClueText,
-                        placeholder = { Text("添加发现的线索...") },
+                        placeholder = { Text(LocalizedStrings.sessionAddClue) },
                         modifier = Modifier.weight(1f),
                         singleLine = true
                     )
                     IconButton(onClick = viewModel::addClue) {
-                        Icon(Icons.Default.Add, contentDescription = "添加")
+                        Icon(Icons.Default.Add, contentDescription = LocalizedStrings.add)
                     }
                 }
             }
@@ -178,7 +179,7 @@ fun CreateSessionScreen(
                 OutlinedTextField(
                     value = uiState.nextSessionNotes,
                     onValueChange = viewModel::updateNextSessionNotes,
-                    label = { Text("下局预告/准备事项") },
+                    label = { Text(LocalizedStrings.sessionNextNotes) },
                     modifier = Modifier.fillMaxWidth(),
                     minLines = 3
                 )
@@ -194,7 +195,7 @@ fun CreateSessionScreen(
                     if (uiState.isSubmitting) {
                         CircularProgressIndicator(modifier = Modifier.size(20.dp))
                     } else {
-                        Text("保存")
+                        Text(LocalizedStrings.save)
                     }
                 }
             }

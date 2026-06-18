@@ -14,6 +14,7 @@ import com.example.keepersnotes.data.repository.SessionRepository
 import com.example.keepersnotes.notification.ReminderScheduler
 import com.example.keepersnotes.util.Constants
 import com.example.keepersnotes.util.FileReaderUtil
+import com.example.keepersnotes.util.LocalizedStrings
 import com.example.keepersnotes.util.ModuleContentParser
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
@@ -143,11 +144,51 @@ class HomeViewModel @Inject constructor(
             try {
                 val context = getApplication<Application>()
                 withContext(Dispatchers.IO) {
+                    val fileName = getFileName(context, uri)
+                    val ext = fileName.substringAfterLast('.', "").lowercase()
+
+                    // Use structured parser for TXT files
+                    if (ext == "txt") {
+                        try {
+                            val nodes = FileReaderUtil.readTxtStructured(context, uri)
+                            if (nodes.isSuccess) {
+                                val txtNodes = nodes.getOrNull() ?: emptyList()
+                                // Convert to markdown for compatibility
+                                val rawContent = txtNodes.joinToString("\n\n") { node ->
+                                    when (node.type) {
+                                        "heading" -> "#".repeat(node.level) + " " + node.content
+                                        "paragraph" -> node.content
+                                        "quote" -> "> " + node.content
+                                        "list_item" -> "- " + node.content
+                                        else -> node.content
+                                    }
+                                }
+                                val cleanTitle = title.replace(Regex("[\\x00-\\x08\\x0B\\x0C\\x0E-\\x1F\\x7F\\uFFFD]"), "").trim()
+                                    .ifBlank { LocalizedStrings.unnamedModule }
+                                val chapters = ModuleContentParser.parseTextToChapters(rawContent)
+                                val contentJson = ModuleContentParser.chaptersToJson(chapters)
+                                val moduleId = moduleRepository.importModule(
+                                    title = cleanTitle,
+                                    author = author,
+                                    system = system,
+                                    content = contentJson
+                                )
+                                _uiState.update {
+                                    it.copy(isImporting = false, importResult = ImportResult.Success(title.ifBlank { LocalizedStrings.unnamedModule }))
+                                }
+                                return@withContext
+                            }
+                        } catch (e: Exception) {
+                            // Fall through to default handling
+                        }
+                    }
+
+                    // Default handling for other file types or fallback
                     val contentResult = FileReaderUtil.readFileContent(context, uri)
                     contentResult.fold(
                         onSuccess = { rawContent ->
                             val cleanTitle = title.replace(Regex("[\\x00-\\x08\\x0B\\x0C\\x0E-\\x1F\\x7F\\uFFFD]"), "").trim()
-                                .ifBlank { "未命名模组" }
+                                .ifBlank { LocalizedStrings.unnamedModule }
                             val chapters = ModuleContentParser.parseTextToChapters(rawContent)
                             val contentJson = ModuleContentParser.chaptersToJson(chapters)
                             val moduleId = moduleRepository.importModule(
@@ -157,19 +198,19 @@ class HomeViewModel @Inject constructor(
                                 content = contentJson
                             )
                             _uiState.update {
-                                it.copy(isImporting = false, importResult = ImportResult.Success(title.ifBlank { "未命名模组" }))
+                                it.copy(isImporting = false, importResult = ImportResult.Success(title.ifBlank { LocalizedStrings.unnamedModule }))
                             }
                         },
                         onFailure = { error ->
                             _uiState.update {
-                                it.copy(isImporting = false, importResult = ImportResult.Error(error.message ?: "导入失败"))
+                                it.copy(isImporting = false, importResult = ImportResult.Error(error.message ?: LocalizedStrings.homeImportFail))
                             }
                         }
                     )
                 }
             } catch (e: Exception) {
                 _uiState.update {
-                    it.copy(isImporting = false, importResult = ImportResult.Error(e.message ?: "导入失败"))
+                    it.copy(isImporting = false, importResult = ImportResult.Error(e.message ?: LocalizedStrings.homeImportFail))
                 }
             }
         }
@@ -200,7 +241,7 @@ class HomeViewModel @Inject constructor(
                 }
             } catch (e: Exception) {
                 _uiState.update {
-                    it.copy(isImporting = false, importResult = ImportResult.Error(e.message ?: "导入失败"))
+                    it.copy(isImporting = false, importResult = ImportResult.Error(e.message ?: LocalizedStrings.homeImportFail))
                 }
             }
         }
@@ -208,6 +249,17 @@ class HomeViewModel @Inject constructor(
 
     fun clearImportResult() {
         _uiState.update { it.copy(importResult = null) }
+    }
+
+    private fun getFileName(context: android.content.Context, uri: Uri): String {
+        var fileName = ""
+        context.contentResolver.query(uri, null, null, null, null)?.use { cursor ->
+            val nameIndex = cursor.getColumnIndex(android.provider.OpenableColumns.DISPLAY_NAME)
+            if (cursor.moveToFirst() && nameIndex >= 0) {
+                fileName = cursor.getString(nameIndex) ?: ""
+            }
+        }
+        return fileName
     }
 
 }

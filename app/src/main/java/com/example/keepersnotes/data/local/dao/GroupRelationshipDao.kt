@@ -7,6 +7,12 @@ import kotlinx.coroutines.flow.Flow
 @Dao
 interface GroupRelationshipDao {
 
+    @Query("SELECT * FROM group_relationships")
+    fun getAll(): Flow<List<GroupRelationshipEntity>>
+
+    @Query("DELETE FROM group_relationships")
+    suspend fun deleteAll()
+
     @Query("SELECT * FROM group_relationships WHERE groupId = :groupId ORDER BY createTime DESC")
     fun getByGroupId(groupId: String): Flow<List<GroupRelationshipEntity>>
 
@@ -15,6 +21,9 @@ interface GroupRelationshipDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insert(entity: GroupRelationshipEntity)
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertAll(entities: List<GroupRelationshipEntity>)
 
     @Update
     suspend fun update(entity: GroupRelationshipEntity)

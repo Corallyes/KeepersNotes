@@ -17,6 +17,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.keepersnotes.data.local.dao.SearchResult
 import com.example.keepersnotes.ui.component.CompactTopBar
+import com.example.keepersnotes.util.LocalizedStrings
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -34,10 +35,10 @@ fun GlobalSearchScreen(
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
         topBar = {
             CompactTopBar(
-                title = "全局搜索",
+                title = LocalizedStrings.searchTitle,
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "返回")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = LocalizedStrings.back)
                     }
                 }
             )
@@ -55,7 +56,7 @@ fun GlobalSearchScreen(
                     searchQuery = it
                     viewModel.search(it, selectedFilter)
                 },
-                placeholder = { Text("搜索模组、笔记、高亮、批注...") },
+                placeholder = { Text(LocalizedStrings.searchPlaceholder) },
                 leadingIcon = { Icon(Icons.Default.Search, null) },
                 trailingIcon = {
                     if (searchQuery.isNotBlank()) {
@@ -63,7 +64,7 @@ fun GlobalSearchScreen(
                             searchQuery = ""
                             viewModel.clearSearch()
                         }) {
-                            Icon(Icons.Default.Clear, "清除")
+                            Icon(Icons.Default.Clear, LocalizedStrings.clear)
                         }
                     }
                 },
@@ -86,7 +87,7 @@ fun GlobalSearchScreen(
                         selectedFilter = null
                         viewModel.search(searchQuery, null)
                     },
-                    label = { Text("全部") }
+                    label = { Text(LocalizedStrings.searchAll) }
                 )
                 FilterChip(
                     selected = selectedFilter == "module",
@@ -94,7 +95,7 @@ fun GlobalSearchScreen(
                         selectedFilter = "module"
                         viewModel.search(searchQuery, "module")
                     },
-                    label = { Text("模组") }
+                    label = { Text(LocalizedStrings.searchModules) }
                 )
                 FilterChip(
                     selected = selectedFilter == "memo",
@@ -102,7 +103,7 @@ fun GlobalSearchScreen(
                         selectedFilter = "memo"
                         viewModel.search(searchQuery, "memo")
                     },
-                    label = { Text("笔记") }
+                    label = { Text(LocalizedStrings.searchMemos) }
                 )
                 FilterChip(
                     selected = selectedFilter == "highlight",
@@ -110,7 +111,7 @@ fun GlobalSearchScreen(
                         selectedFilter = "highlight"
                         viewModel.search(searchQuery, "highlight")
                     },
-                    label = { Text("高亮") }
+                    label = { Text(LocalizedStrings.searchHighlights) }
                 )
                 FilterChip(
                     selected = selectedFilter == "annotation",
@@ -118,7 +119,7 @@ fun GlobalSearchScreen(
                         selectedFilter = "annotation"
                         viewModel.search(searchQuery, "annotation")
                     },
-                    label = { Text("批注") }
+                    label = { Text(LocalizedStrings.searchAnnotations) }
                 )
             }
 
@@ -136,7 +137,7 @@ fun GlobalSearchScreen(
                 // 显示搜索历史
                 if (uiState.searchHistory.isNotEmpty()) {
                     Text(
-                        "搜索历史",
+                        LocalizedStrings.searchHistory,
                         style = MaterialTheme.typography.titleSmall,
                         modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
                     )
@@ -168,7 +169,7 @@ fun GlobalSearchScreen(
                             )
                             Spacer(modifier = Modifier.height(16.dp))
                             Text(
-                                "输入关键词搜索",
+                                LocalizedStrings.searchInputHint,
                                 style = MaterialTheme.typography.bodyLarge,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -189,7 +190,7 @@ fun GlobalSearchScreen(
                         )
                         Spacer(modifier = Modifier.height(16.dp))
                         Text(
-                            "未找到匹配内容",
+                            LocalizedStrings.searchNoResults,
                             style = MaterialTheme.typography.bodyLarge,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -197,7 +198,7 @@ fun GlobalSearchScreen(
                 }
             } else {
                 Text(
-                    "找到 ${uiState.results.size} 个结果",
+                    LocalizedStrings.searchResultCount.format(uiState.results.size),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
@@ -266,12 +267,12 @@ private fun SearchResultItem(
                 // 类型标签
                 Text(
                     text = when (result.type) {
-                        "module" -> "模组"
-                        "memo" -> "笔记"
-                        "highlight" -> "高亮"
-                        "annotation" -> "批注"
-                        "bookmark" -> "书签"
-                        else -> "其他"
+                        "module" -> LocalizedStrings.searchTypeModule
+                        "memo" -> LocalizedStrings.searchTypeMemo
+                        "highlight" -> LocalizedStrings.searchTypeHighlight
+                        "annotation" -> LocalizedStrings.searchTypeAnnotation
+                        "bookmark" -> LocalizedStrings.searchTypeBookmark
+                        else -> LocalizedStrings.searchTypeOther
                     },
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant

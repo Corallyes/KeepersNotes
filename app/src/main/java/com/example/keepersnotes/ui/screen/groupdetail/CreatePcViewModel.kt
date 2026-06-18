@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.keepersnotes.data.repository.PlayerCharacterRepository
 import com.example.keepersnotes.util.Constants
+import com.example.keepersnotes.util.LocalizedStrings
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -65,11 +66,11 @@ class CreatePcViewModel @Inject constructor(
         val state = _uiState.value
         var hasError = false
         if (state.playerName.isBlank()) {
-            _uiState.update { it.copy(playerNameError = "请输入玩家昵称") }
+            _uiState.update { it.copy(playerNameError = LocalizedStrings.pcPlayerNameRequired) }
             hasError = true
         }
         if (state.characterName.isBlank()) {
-            _uiState.update { it.copy(characterNameError = "请输入角色名称") }
+            _uiState.update { it.copy(characterNameError = LocalizedStrings.pcCharacterNameRequired) }
             hasError = true
         }
         if (hasError) return

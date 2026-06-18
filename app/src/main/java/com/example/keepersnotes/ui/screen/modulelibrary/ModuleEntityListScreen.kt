@@ -27,13 +27,14 @@ import com.example.keepersnotes.data.local.entity.ModuleDefaultNpcEntity
 import com.example.keepersnotes.data.local.entity.ModuleLocationEntity
 import com.example.keepersnotes.data.local.entity.ModuleOrganizationEntity
 import com.example.keepersnotes.ui.component.CompactTopBar
+import com.example.keepersnotes.util.LocalizedStrings
 
-enum class EntityType(val label: String) {
-    PC("推荐PC"),
-    NPC("默认NPC"),
-    LOCATION("地点"),
-    ORGANIZATION("组织"),
-    CLUE("线索")
+enum class EntityType(val labelRes: () -> String) {
+    PC({ LocalizedStrings.entityPc }),
+    NPC({ LocalizedStrings.entityNpc }),
+    LOCATION({ LocalizedStrings.entityLocation }),
+    ORGANIZATION({ LocalizedStrings.entityOrganization }),
+    CLUE({ LocalizedStrings.entityClue })
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -52,10 +53,10 @@ fun ModuleEntityListScreen(
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
         topBar = {
             CompactTopBar(
-                title = entityType.label,
+                title = entityType.labelRes(),
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "返回")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = LocalizedStrings.back)
                     }
                 }
             )
@@ -63,7 +64,7 @@ fun ModuleEntityListScreen(
         floatingActionButton = {
             if (entityType != EntityType.PC) {
                 FloatingActionButton(onClick = { showAddDialog = true }) {
-                    Icon(Icons.Default.Add, contentDescription = "添加")
+                    Icon(Icons.Default.Add, contentDescription = LocalizedStrings.add)
                 }
             }
         }
@@ -96,7 +97,7 @@ fun ModuleEntityListScreen(
                     )
                     Spacer(modifier = Modifier.height(16.dp))
                     Text(
-                        "暂无${entityType.label}",
+                        "${LocalizedStrings.entityNoItems} - ${entityType.labelRes()}",
                         style = MaterialTheme.typography.bodyLarge,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -278,7 +279,7 @@ fun ModuleEntityListScreen(
     colorPickerClue?.let { clue ->
         AlertDialog(
             onDismissRequest = { colorPickerClue = null },
-            title = { Text("标记颜色") },
+            title = { Text(LocalizedStrings.entityMarkColor) },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text(
@@ -329,7 +330,7 @@ fun ModuleEntityListScreen(
             },
             confirmButton = {
                 TextButton(onClick = { colorPickerClue = null }) {
-                    Text("取消")
+                    Text(LocalizedStrings.cancel)
                 }
             }
         )
@@ -364,14 +365,15 @@ private fun EntityListItem(
     }
 }
 
-private val clueColors = listOf(
-    0L to "无颜色",
-    0xFFFFEB3B to "黄色",
-    0xFF4CAF50 to "绿色",
-    0xFF2196F3 to "蓝色",
-    0xFFFF9800 to "橙色",
-    0xFFE91E63 to "粉色"
-)
+private val clueColors: List<Pair<Long, String>>
+    get() = listOf(
+        0L to LocalizedStrings.entityNoColor,
+        0xFFFFEB3B to LocalizedStrings.entityColorYellow,
+        0xFF4CAF50 to LocalizedStrings.entityColorGreen,
+        0xFF2196F3 to LocalizedStrings.entityColorBlue,
+        0xFFFF9800 to LocalizedStrings.entityColorOrange,
+        0xFFE91E63 to LocalizedStrings.entityColorPink
+    )
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -380,37 +382,36 @@ private fun ClueListItem(
     onClick: () -> Unit,
     onLongClick: () -> Unit
 ) {
+    val hasColor = clue.color != 0L
+    val cardColor = if (hasColor) Color(clue.color) else MaterialTheme.colorScheme.surfaceContainerLow
+    // 文字对比色：有色背景用白色，无色背景用默认
+    val textColor = if (hasColor) Color.White else MaterialTheme.colorScheme.onSurface
+    val subTextColor = if (hasColor) Color.White.copy(alpha = 0.7f) else MaterialTheme.colorScheme.onSurfaceVariant
+    val iconTint = if (hasColor) Color.White else MaterialTheme.colorScheme.onSurfaceVariant
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .combinedClickable(
                 onClick = onClick,
                 onLongClick = onLongClick
-            )
+            ),
+        colors = CardDefaults.cardColors(containerColor = cardColor)
     ) {
         Row(
             modifier = Modifier.fillMaxWidth().padding(16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            if (clue.color != 0L) {
-                Box(
-                    modifier = Modifier
-                        .size(24.dp)
-                        .clip(CircleShape)
-                        .background(Color(clue.color))
-                )
-            } else {
-                Icon(Icons.Default.Search, contentDescription = null, tint = Color(0xFFE91E63), modifier = Modifier.size(24.dp))
-            }
+            Icon(Icons.Default.Search, contentDescription = null, tint = if (hasColor) Color.White.copy(alpha = 0.8f) else Color(0xFFE91E63), modifier = Modifier.size(24.dp))
             Spacer(modifier = Modifier.width(16.dp))
             Column(modifier = Modifier.weight(1f)) {
-                Text(text = clue.name, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium)
+                Text(text = clue.name, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium, color = textColor)
                 val subtitle = clue.type.ifBlank { clue.source }
                 if (subtitle.isNotBlank()) {
-                    Text(text = subtitle, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    Text(text = subtitle, style = MaterialTheme.typography.bodySmall, color = subTextColor, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 }
             }
-            Icon(Icons.Default.ChevronRight, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+            Icon(Icons.Default.ChevronRight, contentDescription = null, tint = iconTint)
         }
     }
 }

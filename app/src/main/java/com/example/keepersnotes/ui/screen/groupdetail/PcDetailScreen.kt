@@ -18,6 +18,7 @@ import com.example.keepersnotes.ui.component.PcStatusBadge
 import com.example.keepersnotes.ui.screen.modulelibrary.Gender
 import com.example.keepersnotes.util.Constants
 import com.example.keepersnotes.util.JsonUtil
+import com.example.keepersnotes.util.LocalizedStrings
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -33,15 +34,15 @@ fun PcDetailScreen(
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
         topBar = {
             CompactTopBar(
-                title = pc?.characterName ?: "PC详情",
+                title = pc?.characterName ?: LocalizedStrings.pcDetail,
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "返回")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = LocalizedStrings.back)
                     }
                 },
                 actions = {
                     IconButton(onClick = { showEditSheet = true }) {
-                        Icon(Icons.Default.Edit, contentDescription = "编辑")
+                        Icon(Icons.Default.Edit, contentDescription = LocalizedStrings.pcEdit)
                     }
                 }
             )
@@ -50,7 +51,7 @@ fun PcDetailScreen(
         val currentPc = pc
         if (currentPc == null) {
             Box(modifier = Modifier.fillMaxSize().padding(padding)) {
-                Text("加载中...", modifier = Modifier.padding(16.dp))
+                Text(LocalizedStrings.groupLoading, modifier = Modifier.padding(16.dp))
             }
             return@Scaffold
         }
@@ -75,10 +76,10 @@ fun PcDetailScreen(
                             )
                             PcStatusBadge(status = currentPc.status)
                         }
-                        Text("玩家: ${currentPc.playerName}", style = MaterialTheme.typography.bodyMedium)
-                        Text("系统: ${currentPc.system}", style = MaterialTheme.typography.bodySmall)
+                        Text("${LocalizedStrings.pcPlayer}: ${currentPc.playerName}", style = MaterialTheme.typography.bodyMedium)
+                        Text("${LocalizedStrings.pcSystem}: ${currentPc.system}", style = MaterialTheme.typography.bodySmall)
                         if (currentPc.gender.isNotBlank()) {
-                            Text("性别: ${Gender.fromKey(currentPc.gender)?.label ?: currentPc.gender}", style = MaterialTheme.typography.bodySmall)
+                            Text("${LocalizedStrings.pcGender}: ${Gender.fromKey(currentPc.gender)?.labelRes() ?: currentPc.gender}", style = MaterialTheme.typography.bodySmall)
                         }
                     }
                 }
@@ -88,7 +89,7 @@ fun PcDetailScreen(
             item {
                 Card(modifier = Modifier.fillMaxWidth()) {
                     Column(modifier = Modifier.padding(16.dp)) {
-                        Text("属性面板", style = MaterialTheme.typography.titleSmall)
+                        Text(LocalizedStrings.pcAttributes, style = MaterialTheme.typography.titleSmall)
                         Spacer(modifier = Modifier.height(8.dp))
                         Row(
                             modifier = Modifier.fillMaxWidth(),
@@ -96,7 +97,7 @@ fun PcDetailScreen(
                         ) {
                             StatItem("HP", "${currentPc.hpCurrent}/${currentPc.hpMax}")
                             StatItem("SAN", "${currentPc.sanCurrent}/${currentPc.sanMax}")
-                            StatItem("幸运", "${currentPc.luck}")
+                            StatItem(LocalizedStrings.pcLuck, "${currentPc.luck}")
                         }
                     }
                 }
@@ -107,11 +108,11 @@ fun PcDetailScreen(
                 val skills = JsonUtil.parseKeyValueJson(currentPc.skillsJson)
                 Card(modifier = Modifier.fillMaxWidth()) {
                     Column(modifier = Modifier.padding(16.dp)) {
-                        Text("技能列表", style = MaterialTheme.typography.titleSmall)
+                        Text(LocalizedStrings.pcSkills, style = MaterialTheme.typography.titleSmall)
                         Spacer(modifier = Modifier.height(8.dp))
                         if (skills.isEmpty()) {
                             Text(
-                                "暂无技能数据",
+                                LocalizedStrings.pcNoSkills,
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -141,11 +142,11 @@ fun PcDetailScreen(
                 val inventory = JsonUtil.parseStringArray(currentPc.inventoryJson)
                 Card(modifier = Modifier.fillMaxWidth()) {
                     Column(modifier = Modifier.padding(16.dp)) {
-                        Text("物品清单", style = MaterialTheme.typography.titleSmall)
+                        Text(LocalizedStrings.pcItems, style = MaterialTheme.typography.titleSmall)
                         Spacer(modifier = Modifier.height(8.dp))
                         if (inventory.isEmpty()) {
                             Text(
-                                "暂无物品",
+                                LocalizedStrings.pcNoItems,
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -163,7 +164,7 @@ fun PcDetailScreen(
                 item {
                     Card(modifier = Modifier.fillMaxWidth()) {
                         Column(modifier = Modifier.padding(16.dp)) {
-                            Text("背景故事", style = MaterialTheme.typography.titleSmall)
+                            Text(LocalizedStrings.pcBackstory, style = MaterialTheme.typography.titleSmall)
                             Spacer(modifier = Modifier.height(4.dp))
                             Text(currentPc.background, style = MaterialTheme.typography.bodyMedium)
                         }
@@ -176,7 +177,7 @@ fun PcDetailScreen(
                 item {
                     Card(modifier = Modifier.fillMaxWidth()) {
                         Column(modifier = Modifier.padding(16.dp)) {
-                            Text("KP备注", style = MaterialTheme.typography.titleSmall)
+                            Text(LocalizedStrings.groupRemarks, style = MaterialTheme.typography.titleSmall)
                             Spacer(modifier = Modifier.height(4.dp))
                             Text(currentPc.kpNotes, style = MaterialTheme.typography.bodyMedium)
                         }
@@ -237,13 +238,13 @@ private fun EditPcSheet(
             contentPadding = PaddingValues(bottom = 32.dp)
         ) {
             item {
-                Text("编辑PC", style = MaterialTheme.typography.titleLarge)
+                Text(LocalizedStrings.pcEdit, style = MaterialTheme.typography.titleLarge)
             }
             item {
                 OutlinedTextField(
                     value = playerName,
                     onValueChange = { playerName = it },
-                    label = { Text("玩家昵称") },
+                    label = { Text(LocalizedStrings.pcPlayerNickname) },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true
                 )
@@ -252,7 +253,7 @@ private fun EditPcSheet(
                 OutlinedTextField(
                     value = characterName,
                     onValueChange = { characterName = it },
-                    label = { Text("角色名称") },
+                    label = { Text(LocalizedStrings.pcCharName) },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true
                 )
@@ -263,10 +264,10 @@ private fun EditPcSheet(
                     onExpandedChange = { genderExpanded = it }
                 ) {
                     OutlinedTextField(
-                        value = Gender.fromKey(gender)?.label ?: "",
+                        value = Gender.fromKey(gender)?.labelRes() ?: "",
                         onValueChange = {},
                         readOnly = true,
-                        label = { Text("性别") },
+                        label = { Text(LocalizedStrings.pcGender) },
                         trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = genderExpanded) },
                         modifier = Modifier.fillMaxWidth().menuAnchor()
                     )
@@ -276,7 +277,7 @@ private fun EditPcSheet(
                     ) {
                         Gender.entries.forEach { g ->
                             DropdownMenuItem(
-                                text = { Text(g.label) },
+                                text = { Text(g.labelRes()) },
                                 onClick = { gender = g.key; genderExpanded = false }
                             )
                         }
@@ -284,13 +285,13 @@ private fun EditPcSheet(
                 }
             }
             item {
-                Text("状态", style = MaterialTheme.typography.labelMedium)
+                Text(LocalizedStrings.pcStatus, style = MaterialTheme.typography.labelMedium)
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     listOf(
-                        Constants.PC_STATUS_NORMAL to "正常",
-                        Constants.PC_STATUS_WOUNDED to "重伤",
-                        Constants.PC_STATUS_INSANE to "疯狂",
-                        Constants.PC_STATUS_DEAD to "死亡"
+                        Constants.PC_STATUS_NORMAL to LocalizedStrings.pcStatusNormal,
+                        Constants.PC_STATUS_WOUNDED to LocalizedStrings.pcStatusWounded,
+                        Constants.PC_STATUS_INSANE to LocalizedStrings.pcStatusInsane,
+                        Constants.PC_STATUS_DEAD to LocalizedStrings.pcStatusDead
                     ).forEach { (value, label) ->
                         FilterChip(
                             selected = status == value,
@@ -305,14 +306,14 @@ private fun EditPcSheet(
                     OutlinedTextField(
                         value = hpCurrent,
                         onValueChange = { hpCurrent = it },
-                        label = { Text("HP当前") },
+                        label = { Text("HP ${LocalizedStrings.pcCurrent}") },
                         modifier = Modifier.weight(1f),
                         singleLine = true
                     )
                     OutlinedTextField(
                         value = hpMax,
                         onValueChange = { hpMax = it },
-                        label = { Text("HP上限") },
+                        label = { Text("HP ${LocalizedStrings.pcMax}") },
                         modifier = Modifier.weight(1f),
                         singleLine = true
                     )
@@ -323,14 +324,14 @@ private fun EditPcSheet(
                     OutlinedTextField(
                         value = sanCurrent,
                         onValueChange = { sanCurrent = it },
-                        label = { Text("SAN当前") },
+                        label = { Text("SAN ${LocalizedStrings.pcCurrent}") },
                         modifier = Modifier.weight(1f),
                         singleLine = true
                     )
                     OutlinedTextField(
                         value = sanMax,
                         onValueChange = { sanMax = it },
-                        label = { Text("SAN上限") },
+                        label = { Text("SAN ${LocalizedStrings.pcMax}") },
                         modifier = Modifier.weight(1f),
                         singleLine = true
                     )
@@ -340,7 +341,7 @@ private fun EditPcSheet(
                 OutlinedTextField(
                     value = luck,
                     onValueChange = { luck = it },
-                    label = { Text("幸运值") },
+                    label = { Text(LocalizedStrings.pcLuckValue) },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true
                 )
@@ -349,7 +350,7 @@ private fun EditPcSheet(
                 OutlinedTextField(
                     value = background,
                     onValueChange = { background = it },
-                    label = { Text("背景故事") },
+                    label = { Text(LocalizedStrings.pcBackstory) },
                     modifier = Modifier.fillMaxWidth(),
                     minLines = 3
                 )
@@ -358,7 +359,7 @@ private fun EditPcSheet(
                 OutlinedTextField(
                     value = skillsJson,
                     onValueChange = { skillsJson = it },
-                    label = { Text("技能JSON (如 {\"射击\":60,\"聆听\":70})") },
+                    label = { Text(LocalizedStrings.pcSkillsJson) },
                     modifier = Modifier.fillMaxWidth(),
                     minLines = 2
                 )
@@ -367,7 +368,7 @@ private fun EditPcSheet(
                 OutlinedTextField(
                     value = inventoryJson,
                     onValueChange = { inventoryJson = it },
-                    label = { Text("物品JSON (如 [\"绳索\",\"手电筒\"])") },
+                    label = { Text(LocalizedStrings.pcItemsJson) },
                     modifier = Modifier.fillMaxWidth(),
                     minLines = 2
                 )
@@ -376,7 +377,7 @@ private fun EditPcSheet(
                 OutlinedTextField(
                     value = kpNotes,
                     onValueChange = { kpNotes = it },
-                    label = { Text("KP备注") },
+                    label = { Text(LocalizedStrings.groupRemarks) },
                     modifier = Modifier.fillMaxWidth(),
                     minLines = 2
                 )
@@ -404,7 +405,7 @@ private fun EditPcSheet(
                     },
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Text("保存")
+                    Text(LocalizedStrings.save)
                 }
             }
         }

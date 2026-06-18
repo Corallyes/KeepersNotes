@@ -5,11 +5,13 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.keepersnotes.data.local.entity.AnnotationEntity
 import com.example.keepersnotes.data.local.entity.BookmarkEntity
+import com.example.keepersnotes.data.local.entity.DocumentNodeEntity
 import com.example.keepersnotes.data.local.entity.HighlightEntity
 import com.example.keepersnotes.data.local.entity.ModuleEntity
 import com.example.keepersnotes.data.local.entity.ReadingProgressEntity
 import com.example.keepersnotes.data.repository.AnnotationRepository
 import com.example.keepersnotes.data.repository.BookmarkRepository
+import com.example.keepersnotes.data.repository.DocumentNodeRepository
 import com.example.keepersnotes.data.repository.HighlightRepository
 import com.example.keepersnotes.data.repository.ModuleRepository
 import com.example.keepersnotes.data.repository.ReadingProgressRepository
@@ -24,10 +26,19 @@ enum class AnnotationTool {
     NONE, HIGHLIGHT, ANNOTATE, ERASER, BOOKMARK
 }
 
+data class NodeSelection(
+    val nodeId: String,
+    val text: String,
+    val startIndex: Int,
+    val endIndex: Int
+)
+
 data class ModuleReaderUiState(
     val module: ModuleEntity? = null,
     val chapters: List<Chapter> = emptyList(),
     val selectedChapter: Chapter? = null,
+    val documentNodes: List<DocumentNodeEntity> = emptyList(),
+    val useStructuredNodes: Boolean = false,
     val highlights: List<HighlightEntity> = emptyList(),
     val annotations: List<AnnotationEntity> = emptyList(),
     val bookmarks: List<BookmarkEntity> = emptyList(),
@@ -46,6 +57,7 @@ enum class EraserMode {
 class ModuleReaderViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
     private val moduleRepository: ModuleRepository,
+    private val documentNodeRepository: DocumentNodeRepository,
     private val highlightRepository: HighlightRepository,
     private val annotationRepository: AnnotationRepository,
     private val readingProgressRepository: ReadingProgressRepository,
@@ -53,47 +65,177 @@ class ModuleReaderViewModel @Inject constructor(
 ) : ViewModel() {
 
     private val moduleId: String = savedStateHandle.get<String>("moduleId") ?: ""
-    private val initialChapterId: String? = savedStateHandle.get<String>("chapterId")
+    val initialChapterId: String? = savedStateHandle.get<String>("chapterId")
 
     private val _uiState = MutableStateFlow(ModuleReaderUiState(isLoading = true))
     val uiState: StateFlow<ModuleReaderUiState> = _uiState.asStateFlow()
 
-    // 阅读时间追踪
+    // 恢复滚动位置用（由 UI 读取后消费）
+    var initialScrollIndex: Int = 0
+        private set
+    var initialScrollOffset: Int = 0
+        private set
+    var initialFontSize: Float = 16f
+        private set
+
+    // 当前滚动位置（由 UI 持续更新）
+    private var currentNodeId: String = ""
+    private var currentScrollOffset: Int = 0
+    private var currentFontSize: Float = 16f
+
+    // 当前选中的文本（结构化节点模式）
+    private val _activeNodeSelection = MutableStateFlow<NodeSelection?>(null)
+    val activeNodeSelection: StateFlow<NodeSelection?> = _activeNodeSelection.asStateFlow()
+
+    fun setActiveNodeSelection(selection: NodeSelection?) {
+        _activeNodeSelection.value = selection
+    }
+
+    /**
+     * 由 UI 调用，持续更新当前滚动位置。
+     */
+    private var lastSaveTime: Long = 0
+
+    fun updateScrollPosition(nodeId: String, scrollOffset: Int) {
+        currentNodeId = nodeId
+        currentScrollOffset = scrollOffset
+        // 节流：最多每 2 秒保存一次
+        val now = System.currentTimeMillis()
+        if (now - lastSaveTime > 2000) {
+            lastSaveTime = now
+            viewModelScope.launch {
+                saveScrollPosition()
+            }
+        }
+    }
+
+    fun updateFontSize(fontSize: Float) {
+        currentFontSize = fontSize
+        // 保存字体大小
+        viewModelScope.launch {
+            saveScrollPosition()
+        }
+    }
+
+    // 阅读时间追踪（生命周期感知）
     private var readStartTime: Long = 0
+    private var accumulatedSeconds: Long = 0
+    private var isForeground: Boolean = true
+
+    fun onResume() {
+        if (!isForeground) {
+            isForeground = true
+            readStartTime = System.currentTimeMillis()
+        }
+    }
+
+    fun onPause() {
+        if (isForeground && readStartTime > 0) {
+            val elapsed = (System.currentTimeMillis() - readStartTime) / 1000
+            if (elapsed > 0) accumulatedSeconds += elapsed
+            readStartTime = 0
+        }
+        isForeground = false
+        // 立即刷入数据库，防止进程被杀丢失时间
+        flushAccumulatedTime()
+    }
+
+    private fun flushAccumulatedTime() {
+        if (moduleId.isNotBlank()) {
+            viewModelScope.launch {
+                if (accumulatedSeconds > 0) {
+                    val seconds = accumulatedSeconds
+                    accumulatedSeconds = 0
+                    readingProgressRepository.addReadTimeSeconds(moduleId, seconds)
+                }
+                // 保存滚动位置
+                saveScrollPosition()
+            }
+        }
+    }
+
+    private suspend fun saveScrollPosition() {
+        if (moduleId.isNotBlank() && currentNodeId.isNotEmpty()) {
+            readingProgressRepository.updateLastNodePosition(moduleId, currentNodeId, currentScrollOffset, currentFontSize)
+        }
+    }
 
     init {
         if (moduleId.isNotBlank()) {
             moduleRepository.getModuleById(moduleId)
                 .onEach { module ->
                     if (module != null) {
-                        val chapters = ModuleContentParser.jsonToChapters(module.contentJson)
-                        val firstChapter = findFirstLeaf(chapters)
+                        // Check if structured nodes exist for this module
+                        val hasNodes = documentNodeRepository.hasNodes(moduleId)
+                        android.util.Log.d("ModuleReader", "moduleId=$moduleId, hasNodes=$hasNodes")
 
-                        // 加载阅读进度
-                        val progress = readingProgressRepository.getProgressByModule(moduleId).firstOrNull()
-                        val lastChapter = progress?.lastChapterId?.let { id ->
-                            findChapterById(chapters, id)
+                        if (hasNodes) {
+                            // New flow: structured document nodes
+                            // 确保 reading_progress 行存在，否则 addReadTimeSeconds 的 UPDATE 无效
+                            readingProgressRepository.ensureProgressExists(moduleId)
+                            // 读取已保存的滚动位置
+                            val progress = readingProgressRepository.getProgressByModule(moduleId).firstOrNull()
+                            android.util.Log.d("ModuleReader", "Loaded progress: lastNodeId=${progress?.lastNodeId}, lastScrollOffset=${progress?.lastScrollOffset}, lastFontSize=${progress?.lastFontSize}")
+                            if (progress != null) {
+                                initialScrollIndex = progress.lastNodeId.toIntOrNull()?.let { idx ->
+                                    // lastNodeId 存储的是 index（兼容旧数据）
+                                    idx
+                                } ?: 0
+                                initialScrollOffset = progress.lastScrollOffset
+                                initialFontSize = progress.lastFontSize
+                                currentFontSize = progress.lastFontSize
+                            }
+
+                            documentNodeRepository.getNodesByModule(moduleId)
+                                .onEach { nodes ->
+                                    android.util.Log.d("ModuleReader", "Loaded ${nodes.size} structured nodes")
+                                    // 用 lastNodeId 匹配实际节点 index
+                                    val savedNodeId = progress?.lastNodeId
+                                    if (!savedNodeId.isNullOrEmpty()) {
+                                        val matchIdx = nodes.indexOfFirst { it.nodeId == savedNodeId }
+                                        if (matchIdx >= 0) {
+                                            initialScrollIndex = matchIdx
+                                        }
+                                    }
+                                    _uiState.update {
+                                        it.copy(
+                                            module = module,
+                                            documentNodes = nodes,
+                                            useStructuredNodes = true,
+                                            readingProgress = progress,
+                                            isLoading = false
+                                        )
+                                    }
+                                }
+                                .launchIn(viewModelScope)
+                        } else {
+                            // Old flow: chapters from contentJson
+                            val chapters = ModuleContentParser.jsonToChapters(module.contentJson)
+                            val firstChapter = findFirstLeaf(chapters)
+
+                            val progress = readingProgressRepository.getProgressByModule(moduleId).firstOrNull()
+                            val lastChapter = progress?.lastChapterId?.let { id ->
+                                findChapterById(chapters, id)
+                            }
+                            val targetChapter = initialChapterId?.let { findChapterById(chapters, it) }
+                                ?: lastChapter ?: firstChapter
+
+                            _uiState.update {
+                                it.copy(
+                                    module = module,
+                                    chapters = chapters,
+                                    selectedChapter = it.selectedChapter ?: targetChapter,
+                                    useStructuredNodes = false,
+                                    readingProgress = progress,
+                                    isLoading = false
+                                )
+                            }
+
+                            if (progress == null && firstChapter != null) {
+                                readingProgressRepository.initializeProgress(moduleId, firstChapter.id)
+                            }
                         }
-                        // 优先使用导航传入的章节，其次上次阅读章节，最后首章
-                        val targetChapter = initialChapterId?.let { findChapterById(chapters, it) }
-                            ?: lastChapter ?: firstChapter
 
-                        _uiState.update {
-                            it.copy(
-                                module = module,
-                                chapters = chapters,
-                                selectedChapter = it.selectedChapter ?: targetChapter,
-                                readingProgress = progress,
-                                isLoading = false
-                            )
-                        }
-
-                        // 初始化阅读进度
-                        if (progress == null && firstChapter != null) {
-                            readingProgressRepository.initializeProgress(moduleId, firstChapter.id)
-                        }
-
-                        // 记录阅读开始时间
                         readStartTime = System.currentTimeMillis()
                     } else {
                         _uiState.update { it.copy(isLoading = false) }
@@ -124,14 +266,20 @@ class ModuleReaderViewModel @Inject constructor(
 
     override fun onCleared() {
         super.onCleared()
-        // 保存阅读时间
-        if (readStartTime > 0) {
-            val readMinutes = ((System.currentTimeMillis() - readStartTime) / 60000).toInt()
-            if (readMinutes > 0) {
-                viewModelScope.launch {
-                    readingProgressRepository.addReadTime(moduleId, readMinutes)
-                }
+        // onPause 可能已被调用（lifecycle observer），此时 accumulatedSeconds 可能已清零
+        // 若未清零（lifecycle observer 未触发），手动计算剩余时间
+        if (isForeground && readStartTime > 0) {
+            val elapsed = (System.currentTimeMillis() - readStartTime) / 1000
+            if (elapsed > 0) accumulatedSeconds += elapsed
+            readStartTime = 0
+            isForeground = false
+        }
+        // onCleared 时 viewModelScope 已取消，必须用 runBlocking 同步写入
+        if (accumulatedSeconds > 0 && moduleId.isNotBlank()) {
+            kotlinx.coroutines.runBlocking {
+                readingProgressRepository.addReadTimeSeconds(moduleId, accumulatedSeconds)
             }
+            accumulatedSeconds = 0
         }
     }
 
@@ -179,6 +327,18 @@ class ModuleReaderViewModel @Inject constructor(
         }
     }
 
+    fun addNodeBookmark(nodeId: String, selectedText: String = "", note: String = "") {
+        viewModelScope.launch {
+            bookmarkRepository.addNodeBookmark(
+                moduleId = moduleId,
+                nodeId = nodeId,
+                selectedText = selectedText,
+                note = note,
+                color = _uiState.value.selectedColor
+            )
+        }
+    }
+
     fun deleteBookmark(bookmark: BookmarkEntity) {
         viewModelScope.launch {
             bookmarkRepository.deleteBookmark(bookmark)
@@ -205,6 +365,20 @@ class ModuleReaderViewModel @Inject constructor(
             highlightRepository.addHighlight(
                 moduleId = moduleId,
                 chapterId = chapterId,
+                startIndex = startIndex,
+                endIndex = endIndex,
+                selectedText = selectedText,
+                color = _uiState.value.selectedColor
+            )
+        }
+    }
+
+    fun addNodeHighlight(nodeId: String, startIndex: Int, endIndex: Int, selectedText: String, color: Long = _uiState.value.selectedColor) {
+        if (moduleId.isBlank() || selectedText.isBlank()) return
+        viewModelScope.launch {
+            highlightRepository.addNodeHighlight(
+                moduleId = moduleId,
+                nodeId = nodeId,
                 startIndex = startIndex,
                 endIndex = endIndex,
                 selectedText = selectedText,
@@ -243,6 +417,27 @@ class ModuleReaderViewModel @Inject constructor(
         }
     }
 
+    fun addNodeAnnotation(
+        nodeId: String,
+        startIndex: Int,
+        endIndex: Int,
+        selectedText: String,
+        note: String
+    ) {
+        if (moduleId.isBlank() || selectedText.isBlank()) return
+        viewModelScope.launch {
+            annotationRepository.addNodeAnnotation(
+                moduleId = moduleId,
+                nodeId = nodeId,
+                startIndex = startIndex,
+                endIndex = endIndex,
+                selectedText = selectedText,
+                note = note,
+                color = _uiState.value.selectedColor
+            )
+        }
+    }
+
     fun updateAnnotation(annotation: AnnotationEntity) {
         viewModelScope.launch {
             annotationRepository.updateAnnotation(annotation.copy(updateTime = System.currentTimeMillis()))
@@ -264,6 +459,18 @@ class ModuleReaderViewModel @Inject constructor(
 
     fun eraseByAnnotation(annotation: AnnotationEntity) {
         viewModelScope.launch { annotationRepository.deleteAnnotation(annotation) }
+    }
+
+    // 擦除选区内的高亮和批注
+    fun eraseOverlapping(nodeId: String, startIndex: Int, endIndex: Int) {
+        viewModelScope.launch {
+            _uiState.value.highlights
+                .filter { it.nodeId == nodeId && it.startIndex < endIndex && it.endIndex > startIndex }
+                .forEach { highlightRepository.deleteHighlight(it) }
+            _uiState.value.annotations
+                .filter { it.nodeId == nodeId && it.startIndex < endIndex && it.endIndex > startIndex }
+                .forEach { annotationRepository.deleteAnnotation(it) }
+        }
     }
 
     // 批量清除

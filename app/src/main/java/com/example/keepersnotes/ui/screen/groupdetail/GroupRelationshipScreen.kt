@@ -1,14 +1,25 @@
 package com.example.keepersnotes.ui.screen.groupdetail
 
-import androidx.compose.animation.AnimatedVisibility
+import android.content.ContentValues
+import android.graphics.Bitmap
+import android.graphics.Canvas as AndroidCanvas
+import android.graphics.Color as AndroidColor
+import android.graphics.Paint
+import android.graphics.RectF
+import android.os.Build
+import android.os.Environment
+import android.provider.MediaStore
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTransformGestures
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.window.Dialog
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
@@ -20,19 +31,27 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.nativeCanvas
+import androidx.compose.ui.input.pointer.PointerInputChange
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.keepersnotes.ui.component.CompactTopBar
+import com.example.keepersnotes.util.ForceLayoutEngine
+import com.example.keepersnotes.util.LocalizedStrings
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 data class GroupGraphNode(
     val id: String,
     val name: String,
     val type: String,
     val gender: String = "",
+    val pinned: Boolean = false,
     var position: Offset = Offset.Zero
 )
 
@@ -50,110 +69,218 @@ fun GroupRelationshipScreen(
     onBack: () -> Unit,
     viewModel: GroupDetailViewModel = hiltViewModel()
 ) {
+    val context = LocalContext.current
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     var showAddDialog by remember { mutableStateOf(false) }
     var selectedEdge by remember { mutableStateOf<GroupGraphEdge?>(null) }
     var showPanel by remember { mutableStateOf(false) }
     var panelTab by remember { mutableIntStateOf(0) }
-
-    val nodes = remember(uiState) {
-        val nodeList = mutableListOf<GroupGraphNode>()
-        uiState.pcs.forEach { nodeList.add(GroupGraphNode(it.pcId, it.characterName, "pc", it.gender)) }
-        uiState.npcs.forEach { nodeList.add(GroupGraphNode(it.npcId, it.name, "npc", it.gender)) }
-        val centerX = 500f; val centerY = 500f; val radius = 200f
-        nodeList.forEachIndexed { index, node ->
-            val angle = (2 * Math.PI * index / nodeList.size).toFloat()
-            node.position = Offset(centerX + radius * kotlin.math.cos(angle), centerY + radius * kotlin.math.sin(angle))
-        }
-        nodeList
-    }
+    val snackbarHostState = remember { SnackbarHostState() }
+    var isExporting by remember { mutableStateOf(false) }
+    var exportTrigger by remember { mutableIntStateOf(0) }
 
     val edges = remember(uiState) {
         uiState.relationships.map { GroupGraphEdge(it.sourceId, it.targetId, it.relationType, it.description) }
     }
 
+    val baseNodes = remember(uiState) {
+        val nodeList = mutableListOf<GroupGraphNode>()
+        uiState.pcs.forEach { nodeList.add(GroupGraphNode(it.pcId, it.characterName, "pc", it.gender)) }
+        uiState.npcs.forEach { nodeList.add(GroupGraphNode(it.npcId, it.name, "npc", it.gender)) }
+        nodeList.toList()
+    }
+
+    var graphNodes by remember { mutableStateOf<List<GroupGraphNode>>(baseNodes) }
+    var canvasSize by remember { mutableStateOf(Offset.Zero) }
+    val engine = remember { ForceLayoutEngine() }
+
+    LaunchedEffect(baseNodes.map { it.id }, edges.map { it.sourceId + it.targetId }, canvasSize) {
+        if (baseNodes.isNotEmpty() && canvasSize.x > 0f) {
+            val posMap = graphNodes.associateBy { it.id }
+            val inputNodes = baseNodes.map { node ->
+                val existing = posMap[node.id]
+                ForceLayoutEngine.InputNode(
+                    id = node.id,
+                    position = existing?.position ?: node.position,
+                    pinned = existing?.pinned ?: node.pinned
+                )
+            }
+            val inputEdges = edges.map { ForceLayoutEngine.InputEdge(it.sourceId, it.targetId) }
+            val positions = withContext(Dispatchers.Default) {
+                engine.simulate(inputNodes, inputEdges, canvasSize.x, canvasSize.y)
+            }
+            graphNodes = baseNodes.map { node ->
+                val existing = posMap[node.id]
+                node.copy(
+                    pinned = existing?.pinned ?: node.pinned
+                ).apply {
+                    position = positions[node.id] ?: node.position
+                }
+            }
+        }
+    }
+
+    // 导出图片
+    LaunchedEffect(exportTrigger) {
+        if (exportTrigger == 0) return@LaunchedEffect
+        isExporting = true
+        snackbarHostState.showSnackbar(LocalizedStrings.groupRelationshipExporting)
+        val result = withContext(Dispatchers.IO) {
+            try {
+                val bitmap = renderGraphToBitmap(graphNodes, edges, canvasSize)
+                val uri = saveBitmapToGallery(context, bitmap)
+                bitmap.recycle()
+                if (uri != null) Result.success(uri) else Result.failure(Exception("save failed"))
+            } catch (e: Exception) {
+                Result.failure(e)
+            }
+        }
+        isExporting = false
+        if (result.isSuccess) {
+            snackbarHostState.showSnackbar(LocalizedStrings.groupRelationshipExportSuccess)
+        } else {
+            snackbarHostState.showSnackbar("${LocalizedStrings.groupRelationshipExportFail}: ${result.exceptionOrNull()?.message ?: ""}")
+        }
+    }
+
     Scaffold(
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             CompactTopBar(
-                title = "人物关系图谱",
+                title = LocalizedStrings.groupRelationshipTitle,
                 navigationIcon = {
-                    IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "返回") }
+                    IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = LocalizedStrings.back) }
                 },
                 actions = {
-                    IconButton(onClick = { showPanel = !showPanel }) {
-                        Icon(if (showPanel) Icons.Default.ChevronRight else Icons.Default.List, contentDescription = "列表")
+                    if (graphNodes.isNotEmpty()) {
+                        IconButton(onClick = {
+                            exportTrigger++
+                        }, enabled = !isExporting) {
+                            if (isExporting) {
+                                CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
+                            } else {
+                                Icon(Icons.Default.Image, contentDescription = LocalizedStrings.groupRelationshipExport)
+                            }
+                        }
+                    }
+                    IconButton(onClick = { showPanel = true }) {
+                        Icon(Icons.Default.List, contentDescription = LocalizedStrings.back)
                     }
                 }
             )
         },
         floatingActionButton = {
-            if (nodes.size >= 2) {
+            if (graphNodes.size >= 2) {
                 FloatingActionButton(onClick = { showAddDialog = true }) {
-                    Icon(Icons.Default.Add, contentDescription = "添加关系")
+                    Icon(Icons.Default.Add, contentDescription = null)
                 }
             }
         }
     ) { padding ->
-        Row(modifier = Modifier.fillMaxSize().padding(padding)) {
-            Box(modifier = Modifier.weight(1f).fillMaxHeight().background(MaterialTheme.colorScheme.surface)) {
-                if (nodes.isEmpty()) {
-                    Box(modifier = Modifier.fillMaxSize().padding(32.dp), contentAlignment = Alignment.Center) {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Icon(Icons.Default.AccountTree, contentDescription = null, modifier = Modifier.size(64.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
-                            Spacer(modifier = Modifier.height(16.dp))
-                            Text("暂无关系数据", style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            Spacer(modifier = Modifier.height(8.dp))
-                            Text("请先在团详情中添加PC或NPC角色", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        // Graph area — full width
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+                .background(MaterialTheme.colorScheme.surface)
+                .onGloballyPositioned { coordinates ->
+                    canvasSize = Offset(coordinates.size.width.toFloat(), coordinates.size.height.toFloat())
+                }
+        ) {
+            if (graphNodes.isEmpty()) {
+                Box(modifier = Modifier.fillMaxSize().padding(32.dp), contentAlignment = Alignment.Center) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Icon(Icons.Default.AccountTree, contentDescription = null, modifier = Modifier.size(64.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Text(LocalizedStrings.groupRelationshipNoData, style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(LocalizedStrings.groupRelationshipAddCharacterHint, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                }
+            } else {
+                GroupRelationshipGraph(
+                    nodes = graphNodes,
+                    edges = edges,
+                    onNodeDragged = { nodeId, newPos ->
+                        graphNodes = graphNodes.map {
+                            if (it.id == nodeId) it.copy(pinned = true).apply { position = newPos } else it
+                        }
+                    },
+                    onNodePinned = { nodeId, pinned ->
+                        graphNodes = graphNodes.map {
+                            if (it.id == nodeId) it.copy(pinned = pinned) else it
                         }
                     }
-                } else {
-                    GroupRelationshipGraph(nodes = nodes, edges = edges)
-                }
+                )
             }
+        }
+    }
 
-            AnimatedVisibility(visible = showPanel) {
-                Surface(modifier = Modifier.width(280.dp).fillMaxHeight(), tonalElevation = 2.dp) {
-                    Column {
-                        TabRow(selectedTabIndex = panelTab, modifier = Modifier.height(40.dp)) {
-                            Tab(selected = panelTab == 0, onClick = { panelTab = 0 }, text = { Text("关系", style = MaterialTheme.typography.labelSmall) })
-                            Tab(selected = panelTab == 1, onClick = { panelTab = 1 }, text = { Text("人物", style = MaterialTheme.typography.labelSmall) })
-                        }
-                        when (panelTab) {
-                            0 -> {
-                                if (edges.isEmpty()) {
-                                    Box(modifier = Modifier.fillMaxSize().padding(16.dp), contentAlignment = Alignment.Center) {
-                                        Text("暂无关系", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                    }
-                                } else {
-                                    LazyColumn(modifier = Modifier.fillMaxSize(), contentPadding = PaddingValues(8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                                        items(edges) { edge ->
-                                            val src = nodes.find { it.id == edge.sourceId }
-                                            val tgt = nodes.find { it.id == edge.targetId }
-                                            Card(modifier = Modifier.fillMaxWidth().clickable { selectedEdge = edge }) {
-                                                Column(modifier = Modifier.padding(10.dp)) {
-                                                    Text("${src?.name ?: "?"} → ${tgt?.name ?: "?"}", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                                                    Text(edge.relationType, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
-                                                    if (edge.description.isNotBlank()) {
-                                                        Text(edge.description, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 2, overflow = TextOverflow.Ellipsis)
-                                                    }
+    // Centered panel dialog
+    if (showPanel) {
+        Dialog(onDismissRequest = { showPanel = false }) {
+            Surface(
+                shape = RoundedCornerShape(16.dp),
+                tonalElevation = 6.dp,
+                modifier = Modifier
+                    .fillMaxWidth(0.9f)
+                    .fillMaxHeight(0.7f)
+            ) {
+                Column {
+                    TabRow(selectedTabIndex = panelTab, modifier = Modifier.height(40.dp)) {
+                        Tab(selected = panelTab == 0, onClick = { panelTab = 0 }, text = { Text(LocalizedStrings.relationshipTab, style = MaterialTheme.typography.labelSmall) })
+                        Tab(selected = panelTab == 1, onClick = { panelTab = 1 }, text = { Text(LocalizedStrings.relationshipCharacters, style = MaterialTheme.typography.labelSmall) })
+                    }
+                    when (panelTab) {
+                        0 -> {
+                            if (edges.isEmpty()) {
+                                Box(modifier = Modifier.fillMaxSize().padding(16.dp), contentAlignment = Alignment.Center) {
+                                    Text(LocalizedStrings.relationshipNoRelations, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                }
+                            } else {
+                                LazyColumn(modifier = Modifier.fillMaxSize(), contentPadding = PaddingValues(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                                    items(edges) { edge ->
+                                        val src = graphNodes.find { it.id == edge.sourceId }
+                                        val tgt = graphNodes.find { it.id == edge.targetId }
+                                        Card(modifier = Modifier.fillMaxWidth().clickable { selectedEdge = edge; showPanel = false }) {
+                                            Column(modifier = Modifier.padding(12.dp)) {
+                                                Text("${src?.name ?: "?"} → ${tgt?.name ?: "?"}", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                                Text(edge.relationType, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
+                                                if (edge.description.isNotBlank()) {
+                                                    Text(edge.description, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 2, overflow = TextOverflow.Ellipsis)
                                                 }
                                             }
                                         }
                                     }
                                 }
                             }
-                            1 -> {
-                                LazyColumn(modifier = Modifier.fillMaxSize(), contentPadding = PaddingValues(8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                                    items(nodes) { node ->
-                                        Card(modifier = Modifier.fillMaxWidth()) {
-                                            Row(modifier = Modifier.padding(10.dp), verticalAlignment = Alignment.CenterVertically) {
-                                                Box(modifier = Modifier.size(12.dp).clip(CircleShape).background(groupGenderColor(node.gender)))
-                                                Spacer(modifier = Modifier.width(8.dp))
-                                                Column {
-                                                    Text(node.name, style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Medium)
-                                                    Text(if (node.type == "pc") "PC" else "NPC", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                                }
+                        }
+                        1 -> {
+                            LazyColumn(modifier = Modifier.fillMaxSize(), contentPadding = PaddingValues(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                                items(graphNodes) { node ->
+                                    Card(modifier = Modifier.fillMaxWidth()) {
+                                        Row(modifier = Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
+                                            Box(modifier = Modifier.size(12.dp).clip(CircleShape).background(groupGenderColor(node.gender)))
+                                            Spacer(modifier = Modifier.width(10.dp))
+                                            Column(modifier = Modifier.weight(1f)) {
+                                                Text(node.name, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
+                                                Text(if (node.type == "pc") "PC" else "NPC", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                            }
+                                            IconButton(
+                                                onClick = {
+                                                    graphNodes = graphNodes.map {
+                                                        if (it.id == node.id) it.copy(pinned = !it.pinned) else it
+                                                    }
+                                                },
+                                                modifier = Modifier.size(28.dp)
+                                            ) {
+                                                Icon(
+                                                    Icons.Default.PushPin,
+                                                    contentDescription = if (node.pinned) LocalizedStrings.relationshipUnpin else LocalizedStrings.relationshipPin,
+                                                    modifier = Modifier.size(16.dp),
+                                                    tint = if (node.pinned) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+                                                )
                                             }
                                         }
                                     }
@@ -168,7 +295,7 @@ fun GroupRelationshipScreen(
 
     if (showAddDialog) {
         AddGroupRelationshipDialog(
-            nodes = nodes,
+            nodes = graphNodes,
             onDismiss = { showAddDialog = false },
             onAdd = { sourceId, sourceType, targetId, targetType, relationType, description ->
                 viewModel.createRelationship(sourceId, sourceType, targetId, targetType, relationType, description)
@@ -181,8 +308,8 @@ fun GroupRelationshipScreen(
         var editMode by remember { mutableStateOf(false) }
         var editRelationType by remember { mutableStateOf(edge.relationType) }
         var editDescription by remember { mutableStateOf(edge.description) }
-        val sourceNode = nodes.find { it.id == edge.sourceId }
-        val targetNode = nodes.find { it.id == edge.targetId }
+        val sourceNode = graphNodes.find { it.id == edge.sourceId }
+        val targetNode = graphNodes.find { it.id == edge.targetId }
         val relationshipEntity = uiState.relationships.find {
             it.sourceId == edge.sourceId && it.targetId == edge.targetId && it.relationType == edge.relationType
         }
@@ -190,24 +317,24 @@ fun GroupRelationshipScreen(
         if (editMode) {
             AlertDialog(
                 onDismissRequest = { editMode = false; selectedEdge = null },
-                title = { Text("编辑关系") },
+                title = { Text(LocalizedStrings.relationshipEditTitle) },
                 text = {
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         Text("${sourceNode?.name ?: "?"} → ${targetNode?.name ?: "?"}", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        OutlinedTextField(value = editRelationType, onValueChange = { editRelationType = it }, label = { Text("关系类型") }, singleLine = true, modifier = Modifier.fillMaxWidth())
-                        OutlinedTextField(value = editDescription, onValueChange = { editDescription = it }, label = { Text("描述") }, modifier = Modifier.fillMaxWidth(), minLines = 3)
+                        OutlinedTextField(value = editRelationType, onValueChange = { editRelationType = it }, label = { Text(LocalizedStrings.relationshipType) }, singleLine = true, modifier = Modifier.fillMaxWidth())
+                        OutlinedTextField(value = editDescription, onValueChange = { editDescription = it }, label = { Text(LocalizedStrings.entityDescription) }, modifier = Modifier.fillMaxWidth(), minLines = 3)
                     }
                 },
                 confirmButton = {
                     TextButton(onClick = {
                         relationshipEntity?.let { viewModel.updateRelationship(it.copy(relationType = editRelationType, description = editDescription)) }
                         editMode = false; selectedEdge = null
-                    }) { Text("保存") }
+                    }) { Text(LocalizedStrings.save) }
                 },
                 dismissButton = {
                     Row {
-                        TextButton(onClick = { relationshipEntity?.let { viewModel.deleteRelationship(it.id) }; editMode = false; selectedEdge = null }) { Text("删除", color = MaterialTheme.colorScheme.error) }
-                        TextButton(onClick = { editMode = false; selectedEdge = null }) { Text("取消") }
+                        TextButton(onClick = { relationshipEntity?.let { viewModel.deleteRelationship(it.id) }; editMode = false; selectedEdge = null }) { Text(LocalizedStrings.delete, color = MaterialTheme.colorScheme.error) }
+                        TextButton(onClick = { editMode = false; selectedEdge = null }) { Text(LocalizedStrings.cancel) }
                     }
                 }
             )
@@ -220,11 +347,11 @@ fun GroupRelationshipScreen(
                         Text("${sourceNode?.name ?: "?"} → ${targetNode?.name ?: "?"}", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         Spacer(modifier = Modifier.height(8.dp))
                         if (edge.description.isNotBlank()) Text(edge.description, style = MaterialTheme.typography.bodySmall)
-                        else Text("暂无描述", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        else Text(LocalizedStrings.relationshipNoDescription, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 },
-                confirmButton = { TextButton(onClick = { editMode = true }) { Text("编辑") } },
-                dismissButton = { TextButton(onClick = { selectedEdge = null }) { Text("关闭") } }
+                confirmButton = { TextButton(onClick = { editMode = true }) { Text(LocalizedStrings.edit) } },
+                dismissButton = { TextButton(onClick = { selectedEdge = null }) { Text(LocalizedStrings.close) } }
             )
         }
     }
@@ -233,15 +360,49 @@ fun GroupRelationshipScreen(
 @Composable
 private fun GroupRelationshipGraph(
     nodes: List<GroupGraphNode>,
-    edges: List<GroupGraphEdge>
+    edges: List<GroupGraphEdge>,
+    onNodeDragged: (nodeId: String, newPos: Offset) -> Unit = { _, _ -> },
+    onNodePinned: (nodeId: String, pinned: Boolean) -> Unit = { _, _ -> }
 ) {
     var scale by remember { mutableFloatStateOf(1f) }
     var offsetX by remember { mutableFloatStateOf(0f) }
     var offsetY by remember { mutableFloatStateOf(0f) }
+    val isDark = isSystemInDarkTheme()
+
+    val nodeIndex = remember(nodes) { nodes.associateBy { it.id } }
 
     Canvas(
         modifier = Modifier
             .fillMaxSize()
+            .pointerInput(nodes) {
+                awaitPointerEventScope {
+                    while (true) {
+                        val event = awaitPointerEvent()
+                        val down = event.changes.firstOrNull { it.pressed } ?: continue
+                        val graphX = (down.position.x - offsetX) / scale
+                        val graphY = (down.position.y - offsetY) / scale
+                        val hitNode = nodeIndex.values.find { node ->
+                            val dx = node.position.x - graphX
+                            val dy = node.position.y - graphY
+                            dx * dx + dy * dy < 35f * 35f
+                        }
+                        if (hitNode != null) {
+                            if (!hitNode.pinned) onNodePinned(hitNode.id, true)
+                            down.consume()
+                            var drag: PointerInputChange?
+                            do {
+                                drag = awaitPointerEvent().changes.firstOrNull { it.id == down.id }
+                                if (drag != null && drag.pressed) {
+                                    val gx = (drag.position.x - offsetX) / scale
+                                    val gy = (drag.position.y - offsetY) / scale
+                                    onNodeDragged(hitNode.id, Offset(gx, gy))
+                                    drag.consume()
+                                }
+                            } while (drag != null && drag.pressed)
+                        }
+                    }
+                }
+            }
             .pointerInput(Unit) {
                 detectTransformGestures { centroid, pan, zoom, _ ->
                     scale = (scale * zoom).coerceIn(0.5f, 3f)
@@ -254,9 +415,16 @@ private fun GroupRelationshipGraph(
         drawContext.canvas.nativeCanvas.translate(offsetX, offsetY)
         drawContext.canvas.nativeCanvas.scale(scale, scale)
 
+        // Pre-build edge node lookup
+        val edgeNodeMap = mutableMapOf<String, GroupGraphNode>()
         edges.forEach { edge ->
-            val source = nodes.find { it.id == edge.sourceId }
-            val target = nodes.find { it.id == edge.targetId }
+            edgeNodeMap[edge.sourceId] = nodeIndex[edge.sourceId] ?: return@forEach
+            edgeNodeMap[edge.targetId] = nodeIndex[edge.targetId] ?: return@forEach
+        }
+
+        edges.forEach { edge ->
+            val source = edgeNodeMap[edge.sourceId]
+            val target = edgeNodeMap[edge.targetId]
             if (source != null && target != null) {
                 val dir = Offset(target.position.x - source.position.x, target.position.y - source.position.y)
                 val len = kotlin.math.sqrt(dir.x * dir.x + dir.y * dir.y)
@@ -275,8 +443,10 @@ private fun GroupRelationshipGraph(
                 }
                 val midPoint = Offset((source.position.x + target.position.x) / 2, (source.position.y + target.position.y) / 2)
                 drawContext.canvas.nativeCanvas.apply {
-                    val bgPaint = android.graphics.Paint().apply { color = android.graphics.Color.argb(180, 245, 245, 245); textSize = 24f; textAlign = android.graphics.Paint.Align.CENTER }
-                    val textPaint = android.graphics.Paint().apply { color = android.graphics.Color.DKGRAY; textSize = 24f; textAlign = android.graphics.Paint.Align.CENTER; isFakeBoldText = true }
+                    val bgColor = if (isDark) android.graphics.Color.argb(200, 50, 50, 50) else android.graphics.Color.argb(180, 245, 245, 245)
+                    val textColor = if (isDark) android.graphics.Color.LTGRAY else android.graphics.Color.DKGRAY
+                    val bgPaint = android.graphics.Paint().apply { color = bgColor; textSize = 24f; textAlign = android.graphics.Paint.Align.CENTER }
+                    val textPaint = android.graphics.Paint().apply { color = textColor; textSize = 24f; textAlign = android.graphics.Paint.Align.CENTER; isFakeBoldText = true }
                     val tw = textPaint.measureText(edge.relationType)
                     drawRoundRect(android.graphics.RectF(midPoint.x - tw / 2 - 8f, midPoint.y - 18f, midPoint.x + tw / 2 + 8f, midPoint.y + 8f), 6f, 6f, bgPaint)
                     drawText(edge.relationType, midPoint.x, midPoint.y, textPaint)
@@ -286,6 +456,9 @@ private fun GroupRelationshipGraph(
 
         nodes.forEach { node ->
             drawCircle(color = groupGenderColor(node.gender), radius = 30f, center = node.position)
+            if (node.pinned) {
+                drawCircle(color = Color.White, radius = 33f, center = node.position, style = androidx.compose.ui.graphics.drawscope.Stroke(width = 3f))
+            }
             drawContext.canvas.nativeCanvas.apply {
                 val paint = android.graphics.Paint().apply { this.color = android.graphics.Color.WHITE; textSize = 20f; textAlign = android.graphics.Paint.Align.CENTER; isFakeBoldText = true }
                 drawText(node.name, node.position.x, node.position.y + 8f, paint)
@@ -306,6 +479,129 @@ private fun groupGenderColor(gender: String): Color {
     }
 }
 
+private fun groupGenderColorInt(gender: String): Int {
+    return when (gender) {
+        "male" -> 0xFF2196F3.toInt()
+        "female" -> 0xFFE91E63.toInt()
+        "alien" -> 0xFF4CAF50.toInt()
+        "other" -> 0xFFFF9800.toInt()
+        else -> 0xFF9E9E9E.toInt()
+    }
+}
+
+private fun renderGraphToBitmap(
+    nodes: List<GroupGraphNode>,
+    edges: List<GroupGraphEdge>,
+    canvasSize: Offset
+): Bitmap {
+    val w = canvasSize.x.toInt().coerceAtLeast(800)
+    val h = canvasSize.y.toInt().coerceAtLeast(600)
+    val bitmap = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
+    val canvas = AndroidCanvas(bitmap)
+
+    // 白色背景
+    canvas.drawColor(AndroidColor.WHITE)
+
+    val nodeRadius = 30f
+    val arrowLen = 16f
+    val arrowAngle = 0.45f
+
+    val nodeIndex = nodes.associateBy { it.id }
+
+    // 绘制边
+    edges.forEach { edge ->
+        val source = nodeIndex[edge.sourceId]
+        val target = nodeIndex[edge.targetId]
+        if (source != null && target != null) {
+            val dirX = target.position.x - source.position.x
+            val dirY = target.position.y - source.position.y
+            val len = kotlin.math.sqrt(dirX * dirX + dirY * dirY)
+            if (len > 0f) {
+                val ux = dirX / len; val uy = dirY / len
+                val startX = source.position.x + ux * nodeRadius
+                val startY = source.position.y + uy * nodeRadius
+                val endX = target.position.x - ux * nodeRadius
+                val endY = target.position.y - uy * nodeRadius
+
+                val linePaint = Paint().apply { color = AndroidColor.GRAY; strokeWidth = 2f; isAntiAlias = true }
+                canvas.drawLine(startX, startY, endX, endY, linePaint)
+
+                val leftX = endX - arrowLen * (ux * kotlin.math.cos(arrowAngle) - uy * kotlin.math.sin(arrowAngle)).toFloat()
+                val leftY = endY - arrowLen * (ux * kotlin.math.sin(arrowAngle) + uy * kotlin.math.cos(arrowAngle)).toFloat()
+                val rightX = endX - arrowLen * (ux * kotlin.math.cos(-arrowAngle) - uy * kotlin.math.sin(-arrowAngle)).toFloat()
+                val rightY = endY - arrowLen * (ux * kotlin.math.sin(-arrowAngle) + uy * kotlin.math.cos(-arrowAngle)).toFloat()
+
+                val arrowPaint = Paint().apply { color = AndroidColor.GRAY; strokeWidth = 3f; isAntiAlias = true }
+                canvas.drawLine(endX, endY, leftX, leftY, arrowPaint)
+                canvas.drawLine(endX, endY, rightX, rightY, arrowPaint)
+
+                // 关系类型标签
+                val midX = (source.position.x + target.position.x) / 2
+                val midY = (source.position.y + target.position.y) / 2
+                val textPaint = Paint().apply {
+                    color = AndroidColor.DKGRAY
+                    textSize = 24f
+                    textAlign = Paint.Align.CENTER
+                    isFakeBoldText = true
+                    isAntiAlias = true
+                }
+                val tw = textPaint.measureText(edge.relationType)
+                val bgPaint = Paint().apply { color = AndroidColor.argb(180, 245, 245, 245); isAntiAlias = true }
+                canvas.drawRoundRect(RectF(midX - tw / 2 - 8f, midY - 18f, midX + tw / 2 + 8f, midY + 8f), 6f, 6f, bgPaint)
+                canvas.drawText(edge.relationType, midX, midY, textPaint)
+            }
+        }
+    }
+
+    // 绘制节点
+    nodes.forEach { node ->
+        val circlePaint = Paint().apply { color = groupGenderColorInt(node.gender); isAntiAlias = true }
+        canvas.drawCircle(node.position.x, node.position.y, nodeRadius, circlePaint)
+        if (node.pinned) {
+            val strokePaint = Paint().apply {
+                color = AndroidColor.WHITE
+                style = Paint.Style.STROKE
+                strokeWidth = 3f
+                isAntiAlias = true
+            }
+            canvas.drawCircle(node.position.x, node.position.y, 33f, strokePaint)
+        }
+        val namePaint = Paint().apply {
+            color = AndroidColor.WHITE
+            textSize = 20f
+            textAlign = Paint.Align.CENTER
+            isFakeBoldText = true
+            isAntiAlias = true
+        }
+        canvas.drawText(node.name, node.position.x, node.position.y + 8f, namePaint)
+    }
+
+    return bitmap
+}
+
+private fun saveBitmapToGallery(context: android.content.Context, bitmap: Bitmap): android.net.Uri? {
+    val filename = "relationship_map_${System.currentTimeMillis()}.png"
+    val contentValues = ContentValues().apply {
+        put(MediaStore.Images.Media.DISPLAY_NAME, filename)
+        put(MediaStore.Images.Media.MIME_TYPE, "image/png")
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            put(MediaStore.Images.Media.RELATIVE_PATH, Environment.DIRECTORY_PICTURES + "/KeepersNotes")
+            put(MediaStore.Images.Media.IS_PENDING, 1)
+        }
+    }
+    val resolver = context.contentResolver
+    val uri = resolver.insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, contentValues) ?: return null
+    resolver.openOutputStream(uri)?.use { stream ->
+        bitmap.compress(Bitmap.CompressFormat.PNG, 100, stream)
+    }
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+        contentValues.clear()
+        contentValues.put(MediaStore.Images.Media.IS_PENDING, 0)
+        resolver.update(uri, contentValues, null, null)
+    }
+    return uri
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun AddGroupRelationshipDialog(
@@ -322,14 +618,14 @@ private fun AddGroupRelationshipDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("添加关系") },
+        title = { Text(LocalizedStrings.relationshipAddTitle) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 ExposedDropdownMenuBox(expanded = sourceExpanded, onExpandedChange = { sourceExpanded = it }) {
                     OutlinedTextField(
                         value = nodes.find { it.id == sourceId }?.name ?: "",
                         onValueChange = {}, readOnly = true,
-                        label = { Text("源角色") },
+                        label = { Text(LocalizedStrings.groupRelationshipSourceCharacter) },
                         trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = sourceExpanded) },
                         modifier = Modifier.fillMaxWidth().menuAnchor()
                     )
@@ -343,7 +639,7 @@ private fun AddGroupRelationshipDialog(
                     OutlinedTextField(
                         value = nodes.find { it.id == targetId }?.name ?: "",
                         onValueChange = {}, readOnly = true,
-                        label = { Text("目标角色") },
+                        label = { Text(LocalizedStrings.groupRelationshipTargetCharacter) },
                         trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = targetExpanded) },
                         modifier = Modifier.fillMaxWidth().menuAnchor()
                     )
@@ -353,8 +649,8 @@ private fun AddGroupRelationshipDialog(
                         }
                     }
                 }
-                OutlinedTextField(value = relationType, onValueChange = { relationType = it }, label = { Text("关系类型") }, singleLine = true, modifier = Modifier.fillMaxWidth())
-                OutlinedTextField(value = description, onValueChange = { description = it }, label = { Text("描述") }, modifier = Modifier.fillMaxWidth(), minLines = 2)
+                OutlinedTextField(value = relationType, onValueChange = { relationType = it }, label = { Text(LocalizedStrings.relationshipType) }, singleLine = true, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(value = description, onValueChange = { description = it }, label = { Text(LocalizedStrings.entityDescription) }, modifier = Modifier.fillMaxWidth(), minLines = 2)
             }
         },
         confirmButton = {
@@ -365,16 +661,8 @@ private fun AddGroupRelationshipDialog(
                     if (source != null && target != null) onAdd(sourceId, source.type, targetId, target.type, relationType, description)
                 },
                 enabled = sourceId.isNotBlank() && targetId.isNotBlank() && relationType.isNotBlank()
-            ) { Text("添加") }
+            ) { Text(LocalizedStrings.add) }
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("取消") } }
+        dismissButton = { TextButton(onClick = onDismiss) { Text(LocalizedStrings.cancel) } }
     )
-}
-
-private fun findGroupEntity(uiState: GroupDetailUiState, id: String, type: String): String? {
-    return when (type) {
-        "pc" -> uiState.pcs.find { it.pcId == id }?.let { "玩家: ${it.playerName}\n${it.background}" }
-        "npc" -> uiState.npcs.find { it.npcId == id }?.description
-        else -> null
-    }
 }

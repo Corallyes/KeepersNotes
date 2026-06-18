@@ -450,13 +450,13 @@ private fun EventDetailDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("日程详情") },
+        title = { Text(LocalizedStrings.eventDetail) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 OutlinedTextField(
                     value = title,
                     onValueChange = { title = it },
-                    label = { Text("日程名称") },
+                    label = { Text(LocalizedStrings.eventName) },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true
                 )
@@ -468,9 +468,9 @@ private fun EventDetailDialog(
                     }
                 }
                 OutlinedTextField(
-                    value = time.ifBlank { "未设置" },
+                    value = time.ifBlank { LocalizedStrings.eventNotSet },
                     onValueChange = {},
-                    label = { Text("时间") },
+                    label = { Text(LocalizedStrings.eventTime) },
                     readOnly = true,
                     interactionSource = timeInteractionSource,
                     modifier = Modifier.fillMaxWidth()
@@ -481,7 +481,7 @@ private fun EventDetailDialog(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    Text("提醒", style = MaterialTheme.typography.bodyMedium)
+                    Text(LocalizedStrings.eventRemind, style = MaterialTheme.typography.bodyMedium)
                     Switch(
                         checked = isRemindEnabled,
                         onCheckedChange = { isRemindEnabled = it }
@@ -490,14 +490,14 @@ private fun EventDetailDialog(
 
                 // Type display
                 val typeLabel = when (event.type) {
-                    "session_start" -> "开团日"
-                    "session_end" -> "预计结束"
-                    "session" -> "开团中"
-                    "memo_reminder" -> "备忘录提醒"
-                    else -> "自定义日程"
+                    "session_start" -> LocalizedStrings.eventTypeSessionStart
+                    "session_end" -> LocalizedStrings.eventTypeSessionEnd
+                    "session" -> LocalizedStrings.eventTypeSession
+                    "memo_reminder" -> LocalizedStrings.eventTypeMemoReminder
+                    else -> LocalizedStrings.eventTypeCustom
                 }
                 Text(
-                    text = "类型：$typeLabel",
+                    text = "${LocalizedStrings.eventTypeLabel}$typeLabel",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -508,17 +508,17 @@ private fun EventDetailDialog(
                 val updatedTime = time.ifBlank { null }
                 onSave(event.copy(title = title, time = updatedTime, isRemindEnabled = isRemindEnabled))
             }) {
-                Text("保存")
+                Text(LocalizedStrings.save)
             }
         },
         dismissButton = {
             Row {
                 TextButton(onClick = { showDeleteConfirm = true }) {
-                    Text("删除", color = MaterialTheme.colorScheme.error)
+                    Text(LocalizedStrings.delete, color = MaterialTheme.colorScheme.error)
                 }
                 Spacer(modifier = Modifier.weight(1f))
                 TextButton(onClick = onDismiss) {
-                    Text("取消")
+                    Text(LocalizedStrings.cancel)
                 }
             }
         }
@@ -528,7 +528,7 @@ private fun EventDetailDialog(
     if (showTimePicker) {
         AlertDialog(
             onDismissRequest = { showTimePicker = false },
-            title = { Text("选择时间") },
+            title = { Text(LocalizedStrings.groupSelectTime) },
             text = {
                 TimePicker(state = timePickerState)
             },
@@ -537,12 +537,12 @@ private fun EventDetailDialog(
                     time = "${timePickerState.hour.toString().padStart(2, '0')}:${timePickerState.minute.toString().padStart(2, '0')}"
                     showTimePicker = false
                 }) {
-                    Text("确定")
+                    Text(LocalizedStrings.confirm)
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showTimePicker = false }) {
-                    Text("取消")
+                    Text(LocalizedStrings.cancel)
                 }
             }
         )
@@ -552,19 +552,19 @@ private fun EventDetailDialog(
     if (showDeleteConfirm) {
         AlertDialog(
             onDismissRequest = { showDeleteConfirm = false },
-            title = { Text("确认删除") },
-            text = { Text("确定要删除这个日程吗？") },
+            title = { Text(LocalizedStrings.eventDeleteTitle) },
+            text = { Text(LocalizedStrings.eventDeleteConfirm) },
             confirmButton = {
                 TextButton(onClick = {
                     onDelete(event.eventId)
                     showDeleteConfirm = false
                 }) {
-                    Text("删除", color = MaterialTheme.colorScheme.error)
+                    Text(LocalizedStrings.delete, color = MaterialTheme.colorScheme.error)
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showDeleteConfirm = false }) {
-                    Text("取消")
+                    Text(LocalizedStrings.cancel)
                 }
             }
         )

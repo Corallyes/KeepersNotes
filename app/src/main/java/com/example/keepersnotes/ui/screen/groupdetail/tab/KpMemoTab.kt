@@ -11,15 +11,16 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.example.keepersnotes.data.local.entity.KpMemoEntity
 import com.example.keepersnotes.ui.component.MemoCard
+import com.example.keepersnotes.util.Constants
+import com.example.keepersnotes.util.LocalizedStrings
 
-enum class MemoFilter(val label: String) {
-    ALL("全部"),
-    TODO("待办"),
-    REMINDER("提醒"),
-    RULE("规则笔记"),
-    PLOT("剧情笔记"),
-    CLUE("线索笔记"),
-    HIDDEN("暗线笔记")
+enum class MemoFilter(val labelRes: () -> String) {
+    ALL({ LocalizedStrings.memoFilterAll }),
+    TODO({ LocalizedStrings.memoType(Constants.MEMO_TYPE_TODO) }),
+    REMINDER({ LocalizedStrings.memoType(Constants.MEMO_TYPE_REMINDER) }),
+    RULE({ LocalizedStrings.memoType(Constants.MEMO_TYPE_RULE) }),
+    PLOT({ LocalizedStrings.memoType(Constants.MEMO_TYPE_PLOT) }),
+    CLUE({ LocalizedStrings.memoType(Constants.MEMO_TYPE_CLUE) })
 }
 
 @Composable
@@ -45,7 +46,6 @@ fun KpMemoTab(
         MemoFilter.RULE -> memos.filter { it.type == "rule" }
         MemoFilter.PLOT -> memos.filter { it.type == "plot" }
         MemoFilter.CLUE -> memos.filter { it.type == "clue" }
-        MemoFilter.HIDDEN -> memos.filter { it.type == "hidden" || it.isHidden }
     }
 
     Box(modifier = Modifier.fillMaxSize()) {
@@ -62,7 +62,7 @@ fun KpMemoTab(
                             selectedFilter = filter
                             onFilterChanged(MemoFilter.entries.indexOf(filter))
                         },
-                        text = { Text(filter.label) }
+                        text = { Text(filter.labelRes()) }
                     )
                 }
             }
@@ -71,8 +71,8 @@ fun KpMemoTab(
                 Box(modifier = Modifier.fillMaxSize().padding(32.dp)) {
                     Text(
                         text = when (selectedFilter) {
-                            MemoFilter.ALL -> "还没有备忘录"
-                            else -> "没有${selectedFilter.label}类型的备忘"
+                            MemoFilter.ALL -> LocalizedStrings.memoNoMemos
+                            else -> LocalizedStrings.memoNoMemosType(selectedFilter.labelRes())
                         },
                         style = MaterialTheme.typography.bodyLarge,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -102,7 +102,7 @@ fun KpMemoTab(
                 .align(androidx.compose.ui.Alignment.BottomEnd)
                 .padding(16.dp)
         ) {
-            Icon(Icons.Default.Add, contentDescription = "添加备忘")
+            Icon(Icons.Default.Add, contentDescription = LocalizedStrings.memoAdd)
         }
     }
 }

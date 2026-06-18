@@ -50,6 +50,9 @@ object DatabaseModule {
     fun provideImageDao(db: AppDatabase): ImageDao = db.imageDao()
 
     @Provides
+    fun provideImageGroupDao(db: AppDatabase): ImageGroupDao = db.imageGroupDao()
+
+    @Provides
     fun provideHighlightDao(db: AppDatabase): HighlightDao = db.highlightDao()
 
     @Provides
@@ -87,4 +90,7 @@ object DatabaseModule {
 
     @Provides
     fun provideCalendarEventDao(db: AppDatabase): CalendarEventDao = db.calendarEventDao()
+
+    @Provides
+    fun provideDocumentNodeDao(db: AppDatabase): DocumentNodeDao = db.documentNodeDao()
 }

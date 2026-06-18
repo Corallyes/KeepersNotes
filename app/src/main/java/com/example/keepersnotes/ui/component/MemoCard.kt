@@ -4,7 +4,6 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -15,6 +14,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.example.keepersnotes.data.local.entity.KpMemoEntity
 import com.example.keepersnotes.util.Constants
+import com.example.keepersnotes.util.LocalizedStrings
 
 @Composable
 fun MemoCard(
@@ -36,19 +36,10 @@ fun MemoCard(
             Column(modifier = Modifier.weight(1f)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     MemoTypeBadge(type = memo.type)
-                    if (memo.isHidden) {
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Icon(
-                            Icons.Default.VisibilityOff,
-                            contentDescription = "暗线",
-                            modifier = Modifier.size(14.dp),
-                            tint = MaterialTheme.colorScheme.error
-                        )
-                    }
                     if (memo.priority >= 1) {
                         Spacer(modifier = Modifier.width(4.dp))
                         Text(
-                            text = if (memo.priority == 2) "紧急" else "重要",
+                            text = if (memo.priority == 2) LocalizedStrings.memoPriorityUrgent else LocalizedStrings.memoPriorityImportant,
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.error
                         )
@@ -81,7 +72,7 @@ fun MemoCard(
                 IconButton(onClick = onToggleCompleted) {
                     Icon(
                         Icons.Default.CheckCircle,
-                        contentDescription = if (memo.isCompleted) "取消完成" else "标记完成",
+                        contentDescription = if (memo.isCompleted) LocalizedStrings.memoUncomplete else LocalizedStrings.memoMarkComplete,
                         tint = if (memo.isCompleted) MaterialTheme.colorScheme.primary
                         else MaterialTheme.colorScheme.outline
                     )
@@ -94,12 +85,12 @@ fun MemoCard(
 @Composable
 fun MemoTypeBadge(type: String) {
     val (label, color) = when (type) {
-        Constants.MEMO_TYPE_CLUE -> "线索" to MaterialTheme.colorScheme.primary
-        Constants.MEMO_TYPE_PLOT -> "剧情" to MaterialTheme.colorScheme.tertiary
-        Constants.MEMO_TYPE_TODO -> "待办" to MaterialTheme.colorScheme.secondary
-        Constants.MEMO_TYPE_REMINDER -> "提醒" to MaterialTheme.colorScheme.error
-        Constants.MEMO_TYPE_RULE -> "规则" to MaterialTheme.colorScheme.outline
-        else -> "备忘" to MaterialTheme.colorScheme.outline
+        Constants.MEMO_TYPE_CLUE -> LocalizedStrings.memoType(Constants.MEMO_TYPE_CLUE) to MaterialTheme.colorScheme.primary
+        Constants.MEMO_TYPE_PLOT -> LocalizedStrings.memoType(Constants.MEMO_TYPE_PLOT) to MaterialTheme.colorScheme.tertiary
+        Constants.MEMO_TYPE_TODO -> LocalizedStrings.memoType(Constants.MEMO_TYPE_TODO) to MaterialTheme.colorScheme.secondary
+        Constants.MEMO_TYPE_REMINDER -> LocalizedStrings.memoType(Constants.MEMO_TYPE_REMINDER) to MaterialTheme.colorScheme.error
+        Constants.MEMO_TYPE_RULE -> LocalizedStrings.memoType(Constants.MEMO_TYPE_RULE) to MaterialTheme.colorScheme.outline
+        else -> LocalizedStrings.memoType("memo") to MaterialTheme.colorScheme.outline
     }
     SuggestionChip(
         onClick = {},

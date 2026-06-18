@@ -15,6 +15,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.example.keepersnotes.data.local.entity.GroupEntity
 import com.example.keepersnotes.util.Constants
+import com.example.keepersnotes.util.LocalizedStrings
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -98,14 +99,14 @@ fun GroupCard(
                 ) {
                     group.startTime?.let { time ->
                         Text(
-                            text = "开团: ${dateFormat.format(java.util.Date(time))}",
+                            text = "${LocalizedStrings.groupSessionStart}${dateFormat.format(java.util.Date(time))}",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                     group.expectedEndTime?.let { time ->
                         Text(
-                            text = "预计结束: ${dateFormat.format(java.util.Date(time))}",
+                            text = "${LocalizedStrings.groupExpectedEnd}${dateFormat.format(java.util.Date(time))}",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -127,7 +128,7 @@ fun GroupCard(
             // Last play time
             group.lastPlayTime?.let { time ->
                 Text(
-                    text = "上次开团: ${formatRelativeTime(time)}",
+                    text = "${LocalizedStrings.groupLastPlayed}${formatRelativeTime(time)}",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -135,14 +136,13 @@ fun GroupCard(
         }
         }
 
-        // 长按菜单
         DropdownMenu(
             expanded = showMenu,
             onDismissRequest = { showMenu = false }
         ) {
             if (onEdit != null) {
                 DropdownMenuItem(
-                    text = { Text("编辑") },
+                    text = { Text(LocalizedStrings.groupEdit) },
                     onClick = {
                         showMenu = false
                         onEdit()
@@ -152,7 +152,7 @@ fun GroupCard(
             }
             if (onDelete != null) {
                 DropdownMenuItem(
-                    text = { Text("删除") },
+                    text = { Text(LocalizedStrings.groupDelete) },
                     onClick = {
                         showMenu = false
                         onDelete()
@@ -167,9 +167,9 @@ fun GroupCard(
 @Composable
 fun GroupStatusBadge(status: String) {
     val (label, color) = when (status) {
-        Constants.GROUP_STATUS_ACTIVE -> "进行中" to MaterialTheme.colorScheme.primary
-        Constants.GROUP_STATUS_PAUSED -> "暂停" to MaterialTheme.colorScheme.tertiary
-        Constants.GROUP_STATUS_COMPLETED -> "已完结" to MaterialTheme.colorScheme.outline
+        Constants.GROUP_STATUS_ACTIVE -> LocalizedStrings.groupStatusActive to MaterialTheme.colorScheme.primary
+        Constants.GROUP_STATUS_PAUSED -> LocalizedStrings.groupStatusPaused to MaterialTheme.colorScheme.tertiary
+        Constants.GROUP_STATUS_COMPLETED -> LocalizedStrings.groupStatusCompleted to MaterialTheme.colorScheme.outline
         else -> status to MaterialTheme.colorScheme.outline
     }
     SuggestionChip(
@@ -189,10 +189,10 @@ private fun formatRelativeTime(timestamp: Long): String {
     val hours = diff / 3_600_000
     val days = diff / 86_400_000
     return when {
-        minutes < 1 -> "刚刚"
-        minutes < 60 -> "${minutes}分钟前"
-        hours < 24 -> "${hours}小时前"
-        days < 30 -> "${days}天前"
-        else -> "${days / 30}个月前"
+        minutes < 1 -> LocalizedStrings.groupJustNow
+        minutes < 60 -> "${minutes}${LocalizedStrings.groupMinutesAgo}"
+        hours < 24 -> "${hours}${LocalizedStrings.groupHoursAgo}"
+        days < 30 -> "${days}${LocalizedStrings.groupDaysAgo}"
+        else -> "${days / 30}${LocalizedStrings.groupMonthsAgo}"
     }
 }

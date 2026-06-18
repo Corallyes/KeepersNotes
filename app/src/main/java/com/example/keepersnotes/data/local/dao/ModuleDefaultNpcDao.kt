@@ -6,6 +6,12 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface ModuleDefaultNpcDao {
+    @Query("SELECT * FROM module_default_npcs")
+    fun getAll(): Flow<List<ModuleDefaultNpcEntity>>
+
+    @Query("DELETE FROM module_default_npcs")
+    suspend fun deleteAll()
+
     @Query("SELECT * FROM module_default_npcs WHERE moduleId = :moduleId ORDER BY sortOrder, createTime")
     fun getByModuleId(moduleId: String): Flow<List<ModuleDefaultNpcEntity>>
 
@@ -17,6 +23,9 @@ interface ModuleDefaultNpcDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insert(entity: ModuleDefaultNpcEntity)
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertAll(entities: List<ModuleDefaultNpcEntity>)
 
     @Update
     suspend fun update(entity: ModuleDefaultNpcEntity)

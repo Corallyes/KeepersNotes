@@ -18,6 +18,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.example.keepersnotes.data.local.entity.AnnotationEntity
 import com.example.keepersnotes.data.local.entity.HighlightEntity
+import com.example.keepersnotes.util.LocalizedStrings
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -41,7 +42,7 @@ fun AnnotationPanel(
                 .padding(horizontal = 16.dp)
         ) {
             Text(
-                "标注管理",
+                LocalizedStrings.readerHighlights,
                 style = MaterialTheme.typography.titleLarge,
                 modifier = Modifier.padding(bottom = 16.dp)
             )
@@ -51,13 +52,13 @@ fun AnnotationPanel(
                 Tab(
                     selected = selectedTab == 0,
                     onClick = { selectedTab = 0 },
-                    text = { Text("高亮 (${highlights.size})") },
+                    text = { Text("${LocalizedStrings.readerHighlights} (${highlights.size})") },
                     icon = { Icon(Icons.Default.Highlight, null) }
                 )
                 Tab(
                     selected = selectedTab == 1,
                     onClick = { selectedTab = 1 },
-                    text = { Text("批注 (${annotations.size})") },
+                    text = { Text("${LocalizedStrings.readerAnnotations} (${annotations.size})") },
                     icon = { Icon(Icons.Default.Comment, null) }
                 )
             }
@@ -75,7 +76,7 @@ fun AnnotationPanel(
                             contentAlignment = Alignment.Center
                         ) {
                             Text(
-                                "暂无高亮",
+                                LocalizedStrings.readerNoHighlights,
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -104,7 +105,7 @@ fun AnnotationPanel(
                             contentAlignment = Alignment.Center
                         ) {
                             Text(
-                                "暂无批注",
+                                LocalizedStrings.readerNoAnnotations,
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -167,7 +168,7 @@ private fun HighlightItem(
                     overflow = TextOverflow.Ellipsis
                 )
                 Text(
-                    text = "位置: ${highlight.startIndex}-${highlight.endIndex}",
+                    text = "${LocalizedStrings.readerPosition}: ${highlight.startIndex}-${highlight.endIndex}",
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -180,7 +181,7 @@ private fun HighlightItem(
             ) {
                 Icon(
                     Icons.Default.Delete,
-                    contentDescription = "删除",
+                    contentDescription = LocalizedStrings.delete,
                     tint = MaterialTheme.colorScheme.error,
                     modifier = Modifier.size(18.dp)
                 )
@@ -241,7 +242,7 @@ private fun AnnotationItem(
             ) {
                 Icon(
                     Icons.Default.Delete,
-                    contentDescription = "删除",
+                    contentDescription = LocalizedStrings.delete,
                     tint = MaterialTheme.colorScheme.error,
                     modifier = Modifier.size(18.dp)
                 )

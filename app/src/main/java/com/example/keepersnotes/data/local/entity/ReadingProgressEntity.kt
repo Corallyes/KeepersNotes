@@ -23,5 +23,9 @@ data class ReadingProgressEntity(
     val lastChapterId: String = "",
     val lastReadTime: Long = System.currentTimeMillis(),
     val totalReadTimeMinutes: Int = 0,
-    val readCount: Int = 0
+    val readCount: Int = 0,
+    val totalReadTimeSeconds: Long = 0,
+    val lastNodeId: String = "",
+    val lastScrollOffset: Int = 0,
+    val lastFontSize: Float = 16f
 )

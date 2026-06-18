@@ -18,6 +18,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.example.keepersnotes.data.local.entity.CalendarEventEntity
+import com.example.keepersnotes.util.LocalizedStrings
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -29,7 +30,7 @@ fun CalendarView(
     modifier: Modifier = Modifier
 ) {
     var currentMonth by remember { mutableStateOf(Calendar.getInstance()) }
-    val dateFormat = remember { SimpleDateFormat("yyyy年M月", Locale.CHINA) }
+    val dateFormat = remember { SimpleDateFormat(LocalizedStrings.dateFormatYearMonth, Locale.getDefault()) }
     val dayFormat = remember { SimpleDateFormat("d", Locale.CHINA) }
 
     // 获取当月事件的日期集合
@@ -63,7 +64,7 @@ fun CalendarView(
             IconButton(onClick = {
                 currentMonth = (currentMonth.clone() as Calendar).apply { add(Calendar.MONTH, -1) }
             }) {
-                Icon(Icons.AutoMirrored.Filled.KeyboardArrowLeft, contentDescription = "上月")
+                Icon(Icons.AutoMirrored.Filled.KeyboardArrowLeft, contentDescription = LocalizedStrings.calendarPrevMonth)
             }
             Text(
                 text = dateFormat.format(currentMonth.time),
@@ -73,7 +74,7 @@ fun CalendarView(
             IconButton(onClick = {
                 currentMonth = (currentMonth.clone() as Calendar).apply { add(Calendar.MONTH, 1) }
             }) {
-                Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = "下月")
+                Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = LocalizedStrings.calendarNextMonth)
             }
         }
 
@@ -81,7 +82,15 @@ fun CalendarView(
 
         // 星期标题
         Row(modifier = Modifier.fillMaxWidth()) {
-            listOf("日", "一", "二", "三", "四", "五", "六").forEach { day ->
+            listOf(
+                LocalizedStrings.calendarDaySun,
+                LocalizedStrings.calendarDayMon,
+                LocalizedStrings.calendarDayTue,
+                LocalizedStrings.calendarDayWed,
+                LocalizedStrings.calendarDayThu,
+                LocalizedStrings.calendarDayFri,
+                LocalizedStrings.calendarDaySat
+            ).forEach { day ->
                 Text(
                     text = day,
                     modifier = Modifier.weight(1f),
@@ -233,7 +242,7 @@ fun CalendarEventList(
                     if (event.isRemindEnabled) {
                         Icon(
                             Icons.Default.Notifications,
-                            contentDescription = "已设置提醒",
+                            contentDescription = LocalizedStrings.calendarHasReminder,
                             modifier = Modifier.size(16.dp),
                             tint = MaterialTheme.colorScheme.primary
                         )

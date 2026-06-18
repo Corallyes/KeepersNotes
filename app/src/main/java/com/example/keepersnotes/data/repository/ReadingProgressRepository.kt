@@ -33,6 +33,19 @@ class ReadingProgressRepository @Inject constructor(
         readingProgressDao.addReadTime(moduleId, minutes)
     }
 
+    suspend fun addReadTimeSeconds(moduleId: String, seconds: Long) {
+        readingProgressDao.addReadTimeSeconds(moduleId, seconds)
+    }
+
+    suspend fun ensureProgressExists(moduleId: String) {
+        readingProgressDao.insertIfNotExists(
+            ReadingProgressEntity(
+                moduleId = moduleId,
+                lastReadTime = System.currentTimeMillis()
+            )
+        )
+    }
+
     suspend fun incrementReadCount(moduleId: String) {
         readingProgressDao.incrementReadCount(moduleId)
     }
@@ -50,5 +63,9 @@ class ReadingProgressRepository @Inject constructor(
 
     suspend fun deleteProgress(moduleId: String) {
         readingProgressDao.deleteProgressByModule(moduleId)
+    }
+
+    suspend fun updateLastNodePosition(moduleId: String, nodeId: String, scrollOffset: Int, fontSize: Float) {
+        readingProgressDao.updateLastNodePosition(moduleId, nodeId, scrollOffset, fontSize)
     }
 }

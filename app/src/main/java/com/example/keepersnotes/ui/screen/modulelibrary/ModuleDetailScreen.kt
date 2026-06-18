@@ -44,6 +44,7 @@ import com.example.keepersnotes.data.local.entity.KpMemoEntity
 import com.example.keepersnotes.ui.component.CompactTopBar
 import com.example.keepersnotes.ui.component.EditModuleDialog
 import com.example.keepersnotes.util.Chapter
+import com.example.keepersnotes.util.LocalizedStrings
 import java.io.File
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -76,10 +77,10 @@ fun ModuleDetailScreen(
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
         topBar = {
             CompactTopBar(
-                title = uiState.module?.title ?: "模组详情",
+                title = uiState.module?.title ?: LocalizedStrings.moduleDetail,
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "返回")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = LocalizedStrings.back)
                     }
                 },
                 actions = {
@@ -87,21 +88,21 @@ fun ModuleDetailScreen(
                         Icon(
                             if (uiState.module?.isFavorite == true) Icons.Default.Favorite
                             else Icons.Default.FavoriteBorder,
-                            contentDescription = if (uiState.module?.isFavorite == true) "取消收藏" else "收藏",
+                            contentDescription = if (uiState.module?.isFavorite == true) LocalizedStrings.moduleUnfavorite else LocalizedStrings.moduleFavorite,
                             tint = if (uiState.module?.isFavorite == true) MaterialTheme.colorScheme.error
                             else MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                     var showMenu by remember { mutableStateOf(false) }
                     IconButton(onClick = { showMenu = true }) {
-                        Icon(Icons.Default.MoreVert, contentDescription = "更多")
+                        Icon(Icons.Default.MoreVert, contentDescription = null)
                     }
                     DropdownMenu(
                         expanded = showMenu,
                         onDismissRequest = { showMenu = false }
                     ) {
                         DropdownMenuItem(
-                            text = { Text("编辑") },
+                            text = { Text(LocalizedStrings.edit) },
                             onClick = {
                                 showMenu = false
                                 showEditDialog = true
@@ -110,7 +111,7 @@ fun ModuleDetailScreen(
                         )
                         HorizontalDivider()
                         DropdownMenuItem(
-                            text = { Text("删除", color = MaterialTheme.colorScheme.error) },
+                            text = { Text(LocalizedStrings.delete, color = MaterialTheme.colorScheme.error) },
                             onClick = {
                                 showMenu = false
                                 showDeleteDialog = true
@@ -130,13 +131,13 @@ fun ModuleDetailScreen(
         floatingActionButton = {
             if (selectedImageTab == 1) {
                 FloatingActionButton(onClick = { imagePickerLauncher.launch("image/*") }) {
-                    Icon(Icons.Default.Add, contentDescription = "添加图片")
+                    Icon(Icons.Default.Add, contentDescription = LocalizedStrings.moduleAddImage)
                 }
             } else {
                 ExtendedFloatingActionButton(
                     onClick = onStartReading,
                     icon = { Icon(Icons.AutoMirrored.Filled.MenuBook, contentDescription = null) },
-                    text = { Text("开始阅读") }
+                    text = { Text(LocalizedStrings.moduleStartReading) }
                 )
             }
         }
@@ -157,7 +158,7 @@ fun ModuleDetailScreen(
                 modifier = Modifier.fillMaxSize().padding(padding),
                 contentAlignment = Alignment.Center
             ) {
-                Text("模组不存在")
+                Text(LocalizedStrings.moduleNotFound)
             }
             return@Scaffold
         }
@@ -168,22 +169,22 @@ fun ModuleDetailScreen(
                 Tab(
                     selected = selectedImageTab == 0,
                     onClick = { selectedImageTab = 0 },
-                    text = { Text("详情") }
+                    text = { Text(LocalizedStrings.moduleDetail) }
                 )
                 Tab(
                     selected = selectedImageTab == 1,
                     onClick = { selectedImageTab = 1 },
-                    text = { Text("图片(${uiState.images.size})") }
+                    text = { Text("${LocalizedStrings.moduleImages}(${uiState.images.size})") }
                 )
                 Tab(
                     selected = selectedImageTab == 2,
                     onClick = { selectedImageTab = 2 },
-                    text = { Text("笔记(${uiState.highlights.size + uiState.annotations.size + uiState.bookmarks.size + uiState.memos.size})") }
+                    text = { Text("${LocalizedStrings.moduleNotes}(${uiState.highlights.size + uiState.annotations.size + uiState.bookmarks.size + uiState.memos.size})") }
                 )
                 Tab(
                     selected = selectedImageTab == 3,
                     onClick = { selectedImageTab = 3 },
-                    text = { Text("模组设置") }
+                    text = { Text(LocalizedStrings.moduleSettings) }
                 )
             }
 
@@ -193,7 +194,8 @@ fun ModuleDetailScreen(
                     uiState = uiState,
                     onStartReading = onStartReading,
                     onNavigateToChapter = onNavigateToChapter,
-                    getChapterTitle = viewModel::getChapterTitle
+                    getChapterTitle = viewModel::getChapterTitle,
+                    onNavigateToReader = onStartReading
                 )
                 1 -> ModuleImageGrid(
                     images = uiState.images,
@@ -230,8 +232,8 @@ fun ModuleDetailScreen(
     if (showDeleteDialog) {
         AlertDialog(
             onDismissRequest = { showDeleteDialog = false },
-            title = { Text("删除模组") },
-            text = { Text("确定要删除「${uiState.module?.title ?: ""}」吗？此操作将同时删除该模组的所有高亮、批注、书签和图片，且不可撤销。") },
+            title = { Text(LocalizedStrings.moduleDeleteTitle) },
+            text = { Text(LocalizedStrings.moduleDeleteConfirm(uiState.module?.title ?: "")) },
             confirmButton = {
                 TextButton(
                     onClick = {
@@ -240,12 +242,12 @@ fun ModuleDetailScreen(
                         onBack()
                     }
                 ) {
-                    Text("删除", color = MaterialTheme.colorScheme.error)
+                    Text(LocalizedStrings.delete, color = MaterialTheme.colorScheme.error)
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showDeleteDialog = false }) {
-                    Text("取消")
+                    Text(LocalizedStrings.cancel)
                 }
             }
         )
@@ -255,8 +257,8 @@ fun ModuleDetailScreen(
     imageToDelete?.let { image ->
         AlertDialog(
             onDismissRequest = { imageToDelete = null },
-            title = { Text("删除图片") },
-            text = { Text("确定要删除「${image.title}」吗？") },
+            title = { Text(LocalizedStrings.moduleDeleteImage) },
+            text = { Text(LocalizedStrings.moduleDeleteImageConfirm(image.title)) },
             confirmButton = {
                 TextButton(
                     onClick = {
@@ -264,12 +266,12 @@ fun ModuleDetailScreen(
                         imageToDelete = null
                     }
                 ) {
-                    Text("删除", color = MaterialTheme.colorScheme.error)
+                    Text(LocalizedStrings.delete, color = MaterialTheme.colorScheme.error)
                 }
             },
             dismissButton = {
                 TextButton(onClick = { imageToDelete = null }) {
-                    Text("取消")
+                    Text(LocalizedStrings.cancel)
                 }
             }
         )
@@ -290,7 +292,8 @@ private fun ModuleDetailContent(
     uiState: ModuleDetailUiState,
     onStartReading: () -> Unit,
     onNavigateToChapter: (String) -> Unit,
-    getChapterTitle: (String) -> String
+    getChapterTitle: (String) -> String,
+    onNavigateToReader: () -> Unit = {}
 ) {
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
@@ -309,7 +312,7 @@ private fun ModuleDetailContent(
                     if (module.author.isNotBlank()) {
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
-                            text = "作者: ${module.author}",
+                            text = "${LocalizedStrings.moduleAuthor}${module.author}",
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -327,7 +330,7 @@ private fun ModuleDetailContent(
                             SuggestionChip(onClick = {}, label = { Text(module.difficulty) })
                         }
                         if (module.playerCount.isNotBlank()) {
-                            SuggestionChip(onClick = {}, label = { Text("${module.playerCount}人") })
+                            SuggestionChip(onClick = {}, label = { Text(LocalizedStrings.playerCountLabel(module.playerCount)) })
                         }
                         if (module.duration.isNotBlank()) {
                             SuggestionChip(onClick = {}, label = { Text(module.duration) })
@@ -342,7 +345,7 @@ private fun ModuleDetailContent(
             item {
                 Card(modifier = Modifier.fillMaxWidth()) {
                     Column(modifier = Modifier.padding(16.dp)) {
-                        Text("简介", style = MaterialTheme.typography.titleSmall)
+                        Text(LocalizedStrings.moduleSynopsis, style = MaterialTheme.typography.titleSmall)
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(module.synopsis, style = MaterialTheme.typography.bodyMedium)
                     }
@@ -354,17 +357,30 @@ private fun ModuleDetailContent(
         item {
             Card(modifier = Modifier.fillMaxWidth()) {
                 Column(modifier = Modifier.padding(16.dp)) {
-                    Text("阅读统计", style = MaterialTheme.typography.titleSmall)
+                    Text(LocalizedStrings.moduleReadingStats, style = MaterialTheme.typography.titleSmall)
                     Spacer(modifier = Modifier.height(8.dp))
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceEvenly
                     ) {
-                        StatItem("${uiState.readingProgress?.totalReadTimeMinutes ?: 0}", "阅读分钟")
-                        StatItem("${uiState.readingProgress?.readCount ?: 0}", "阅读次数")
-                        StatItem("${uiState.highlights.size}", "高亮")
-                        StatItem("${uiState.annotations.size}", "批注")
-                        StatItem("${uiState.bookmarks.size}", "书签")
+                        val progress = uiState.readingProgress
+                        val timeText = if (progress != null && progress.totalReadTimeSeconds > 0) {
+                            val totalSec = progress.totalReadTimeSeconds
+                            val h = totalSec / 3600
+                            val m = (totalSec % 3600) / 60
+                            val s = totalSec % 60
+                            buildString {
+                                if (h > 0) append("${h}${LocalizedStrings.unitHours}")
+                                if (m > 0) append("${m}${LocalizedStrings.unitMinutes}")
+                                if (s > 0 || isEmpty()) append("${s}${LocalizedStrings.unitSeconds}")
+                            }
+                        } else {
+                            "${uiState.readingProgress?.totalReadTimeMinutes ?: 0}${LocalizedStrings.unitMinutes}"
+                        }
+                        StatItem(timeText, LocalizedStrings.moduleReadingTime)
+                        StatItem("${uiState.highlights.size}", LocalizedStrings.moduleHighlights)
+                        StatItem("${uiState.annotations.size}", LocalizedStrings.moduleAnnotations)
+                        StatItem("${uiState.bookmarks.size}", LocalizedStrings.moduleBookmarks)
                     }
                 }
             }
@@ -375,7 +391,7 @@ private fun ModuleDetailContent(
             item {
                 Card(modifier = Modifier.fillMaxWidth()) {
                     Column(modifier = Modifier.padding(16.dp)) {
-                        Text("标签", style = MaterialTheme.typography.titleSmall)
+                        Text(LocalizedStrings.moduleTags, style = MaterialTheme.typography.titleSmall)
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(module.tags, style = MaterialTheme.typography.bodyMedium)
                     }
@@ -388,7 +404,7 @@ private fun ModuleDetailContent(
         if (totalNotes > 0) {
             item {
                 Text(
-                    "阅读笔记 ($totalNotes)",
+                    "${LocalizedStrings.moduleReadingNotes} ($totalNotes)",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold
                 )
@@ -398,7 +414,7 @@ private fun ModuleDetailContent(
             if (uiState.highlights.isNotEmpty()) {
                 item {
                     NotesExpandableSection(
-                        title = "高亮",
+                        title = LocalizedStrings.moduleHighlights,
                         count = uiState.highlights.size,
                         icon = Icons.Default.Highlight,
                         iconTint = Color(0xFFFFEB3B)
@@ -418,7 +434,7 @@ private fun ModuleDetailContent(
             if (uiState.annotations.isNotEmpty()) {
                 item {
                     NotesExpandableSection(
-                        title = "批注",
+                        title = LocalizedStrings.moduleAnnotations,
                         count = uiState.annotations.size,
                         icon = Icons.AutoMirrored.Filled.Comment,
                         iconTint = Color(0xFF4CAF50)
@@ -438,7 +454,7 @@ private fun ModuleDetailContent(
             if (uiState.bookmarks.isNotEmpty()) {
                 item {
                     NotesExpandableSection(
-                        title = "书签",
+                        title = LocalizedStrings.moduleBookmarks,
                         count = uiState.bookmarks.size,
                         icon = Icons.Default.Bookmark,
                         iconTint = Color(0xFFFF9800)
@@ -458,7 +474,7 @@ private fun ModuleDetailContent(
             if (uiState.memos.isNotEmpty()) {
                 item {
                     NotesExpandableSection(
-                        title = "笔记",
+                        title = LocalizedStrings.moduleNotes,
                         count = uiState.memos.size,
                         icon = Icons.AutoMirrored.Filled.Note,
                         iconTint = MaterialTheme.colorScheme.primary
@@ -479,7 +495,7 @@ private fun ModuleDetailContent(
         if (uiState.chapters.isNotEmpty()) {
             item {
                 Text(
-                    "章节目录 (${countChapters(uiState.chapters)} 章)",
+                    "${LocalizedStrings.moduleChapterList} (${countChapters(uiState.chapters)}${LocalizedStrings.moduleChapterCount})",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold
                 )
@@ -490,6 +506,43 @@ private fun ModuleDetailContent(
                     depth = 0,
                     onClick = { onNavigateToChapter(chapter.id) }
                 )
+            }
+        }
+
+        // 结构化文档目录（docx 导入的模组）
+        if (uiState.chapters.isEmpty() && uiState.documentHeadings.isNotEmpty()) {
+            item {
+                Card(modifier = Modifier.fillMaxWidth()) {
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        Text(
+                            "${LocalizedStrings.moduleChapterList} (${uiState.documentHeadings.size}${LocalizedStrings.moduleChapterCount})",
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        uiState.documentHeadings.forEach { heading ->
+                            Surface(
+                                onClick = { onNavigateToChapter(heading.nodeId) },
+                                color = Color.Transparent,
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Text(
+                                    text = heading.content,
+                                    style = when (heading.level) {
+                                        1 -> MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold)
+                                        2 -> MaterialTheme.typography.bodyMedium
+                                        else -> MaterialTheme.typography.bodySmall
+                                    },
+                                    modifier = Modifier.padding(
+                                        start = ((heading.level - 1) * 12).dp,
+                                        top = 4.dp,
+                                        bottom = 4.dp
+                                    )
+                                )
+                            }
+                        }
+                    }
+                }
             }
         }
     }
@@ -515,7 +568,7 @@ private fun ModuleImageGrid(
                 )
                 Spacer(modifier = Modifier.height(16.dp))
                 Text(
-                    "暂无图片，点击右下角 + 添加",
+                    LocalizedStrings.moduleNoImages,
                     style = MaterialTheme.typography.bodyLarge,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -566,7 +619,7 @@ private fun ModuleImageCard(
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
-                        "图片丢失",
+                        LocalizedStrings.moduleImageLost,
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.error
                     )
@@ -580,7 +633,7 @@ private fun ModuleImageCard(
             ) {
                 Icon(
                     Icons.Default.MoreVert,
-                    contentDescription = "更多",
+                    contentDescription = null,
                     modifier = Modifier.size(16.dp),
                     tint = MaterialTheme.colorScheme.onSurface
                 )
@@ -590,7 +643,7 @@ private fun ModuleImageCard(
                 onDismissRequest = { showDeleteMenu = false }
             ) {
                 DropdownMenuItem(
-                    text = { Text("删除", color = MaterialTheme.colorScheme.error) },
+                    text = { Text(LocalizedStrings.delete, color = MaterialTheme.colorScheme.error) },
                     onClick = {
                         showDeleteMenu = false
                         onDelete()
@@ -918,7 +971,7 @@ private fun ChapterListItem(
             )
             if (!hasChildren && chapter.content.isNotBlank()) {
                 Text(
-                    "${chapter.content.length}字",
+                    LocalizedStrings.charCountLabel(chapter.content.length),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -964,7 +1017,7 @@ private fun ModuleNotesContent(
                 )
                 Spacer(modifier = Modifier.height(16.dp))
                 Text(
-                    "暂无阅读笔记",
+                    LocalizedStrings.moduleNoNotes,
                     style = MaterialTheme.typography.bodyLarge,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -981,7 +1034,7 @@ private fun ModuleNotesContent(
         if (uiState.highlights.isNotEmpty()) {
             item {
                 NotesExpandableSection(
-                    title = "高亮",
+                    title = LocalizedStrings.moduleHighlights,
                     count = uiState.highlights.size,
                     icon = Icons.Default.Highlight,
                     iconTint = Color(0xFFFFEB3B)
@@ -1000,7 +1053,7 @@ private fun ModuleNotesContent(
         if (uiState.annotations.isNotEmpty()) {
             item {
                 NotesExpandableSection(
-                    title = "批注",
+                    title = LocalizedStrings.moduleAnnotations,
                     count = uiState.annotations.size,
                     icon = Icons.AutoMirrored.Filled.Comment,
                     iconTint = Color(0xFF4CAF50)
@@ -1019,7 +1072,7 @@ private fun ModuleNotesContent(
         if (uiState.bookmarks.isNotEmpty()) {
             item {
                 NotesExpandableSection(
-                    title = "书签",
+                    title = LocalizedStrings.moduleBookmarks,
                     count = uiState.bookmarks.size,
                     icon = Icons.Default.Bookmark,
                     iconTint = Color(0xFFFF9800)
@@ -1038,7 +1091,7 @@ private fun ModuleNotesContent(
         if (uiState.memos.isNotEmpty()) {
             item {
                 NotesExpandableSection(
-                    title = "笔记",
+                    title = LocalizedStrings.moduleNotes,
                     count = uiState.memos.size,
                     icon = Icons.AutoMirrored.Filled.Note,
                     iconTint = MaterialTheme.colorScheme.primary
@@ -1070,7 +1123,7 @@ private fun ModuleSettingsContent(
         // 默认NPC
         item {
             SettingsNavItem(
-                title = "默认NPC",
+                title = LocalizedStrings.moduleDefaultNpc,
                 count = uiState.defaultNpcs.size,
                 icon = Icons.Default.People,
                 iconTint = Color(0xFF4CAF50),
@@ -1081,7 +1134,7 @@ private fun ModuleSettingsContent(
         // 地点
         item {
             SettingsNavItem(
-                title = "地点",
+                title = LocalizedStrings.moduleLocations,
                 count = uiState.locations.size,
                 icon = Icons.Default.LocationOn,
                 iconTint = Color(0xFFFF9800),
@@ -1092,7 +1145,7 @@ private fun ModuleSettingsContent(
         // 组织
         item {
             SettingsNavItem(
-                title = "组织",
+                title = LocalizedStrings.moduleOrganizations,
                 count = uiState.organizations.size,
                 icon = Icons.Default.Business,
                 iconTint = Color(0xFF9C27B0),
@@ -1103,7 +1156,7 @@ private fun ModuleSettingsContent(
         // 线索
         item {
             SettingsNavItem(
-                title = "线索",
+                title = LocalizedStrings.moduleClues,
                 count = uiState.clues.size,
                 icon = Icons.Default.Search,
                 iconTint = Color(0xFFE91E63),
@@ -1114,7 +1167,7 @@ private fun ModuleSettingsContent(
         // 人物关系网
         item {
             SettingsNavItem(
-                title = "人物关系网",
+                title = LocalizedStrings.groupRelationshipTitle,
                 count = uiState.relationships.size,
                 icon = Icons.Default.AccountTree,
                 iconTint = Color(0xFF795548),
@@ -1198,7 +1251,7 @@ private fun ImageViewerDialog(
                 )
             } else {
                 Text(
-                    "图片丢失",
+                    LocalizedStrings.moduleImageLost,
                     color = Color.White,
                     style = MaterialTheme.typography.bodyLarge
                 )
@@ -1210,7 +1263,7 @@ private fun ImageViewerDialog(
             ) {
                 Icon(
                     Icons.Default.Close,
-                    contentDescription = "关闭",
+                    contentDescription = LocalizedStrings.cancel,
                     tint = Color.White
                 )
             }

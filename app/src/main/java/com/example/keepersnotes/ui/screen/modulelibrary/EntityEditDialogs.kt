@@ -10,12 +10,13 @@ import com.example.keepersnotes.data.local.entity.ModuleClueEntity
 import com.example.keepersnotes.data.local.entity.ModuleDefaultNpcEntity
 import com.example.keepersnotes.data.local.entity.ModuleLocationEntity
 import com.example.keepersnotes.data.local.entity.ModuleOrganizationEntity
+import com.example.keepersnotes.util.LocalizedStrings
 
-enum class Gender(val label: String, val key: String) {
-    MALE("男", "male"),
-    FEMALE("女", "female"),
-    ALIEN("祂", "alien"),
-    OTHER("其他", "other");
+enum class Gender(val labelRes: () -> String, val key: String) {
+    MALE({ LocalizedStrings.entityMale }, "male"),
+    FEMALE({ LocalizedStrings.entityFemale }, "female"),
+    ALIEN({ LocalizedStrings.entityAlien }, "alien"),
+    OTHER({ LocalizedStrings.entityOther }, "other");
 
     companion object {
         fun fromKey(key: String): Gender? = entries.find { it.key == key }
@@ -40,21 +41,21 @@ fun NpcEditDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(if (npc == null) "添加NPC" else "编辑NPC") },
+        title = { Text(if (npc == null) LocalizedStrings.entityAddNpc else LocalizedStrings.entityEditNpc) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedTextField(value = name, onValueChange = { name = it }, label = { Text("名称 *") }, singleLine = true, modifier = Modifier.fillMaxWidth())
-                OutlinedTextField(value = alias, onValueChange = { alias = it }, label = { Text("别名") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(value = name, onValueChange = { name = it }, label = { Text(LocalizedStrings.entityName) }, singleLine = true, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(value = alias, onValueChange = { alias = it }, label = { Text(LocalizedStrings.entityAlias) }, singleLine = true, modifier = Modifier.fillMaxWidth())
                 // Gender selector
                 ExposedDropdownMenuBox(
                     expanded = genderExpanded,
                     onExpandedChange = { genderExpanded = it }
                 ) {
                     OutlinedTextField(
-                        value = Gender.fromKey(gender)?.label ?: "",
+                        value = Gender.fromKey(gender)?.labelRes() ?: "",
                         onValueChange = {},
                         readOnly = true,
-                        label = { Text("性别") },
+                        label = { Text(LocalizedStrings.entityGender) },
                         trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = genderExpanded) },
                         modifier = Modifier.fillMaxWidth().menuAnchor()
                     )
@@ -64,26 +65,26 @@ fun NpcEditDialog(
                     ) {
                         Gender.entries.forEach { g ->
                             DropdownMenuItem(
-                                text = { Text(g.label) },
+                                text = { Text(g.labelRes()) },
                                 onClick = { gender = g.key; genderExpanded = false }
                             )
                         }
                     }
                 }
-                OutlinedTextField(value = occupation, onValueChange = { occupation = it }, label = { Text("职业") }, singleLine = true, modifier = Modifier.fillMaxWidth())
-                OutlinedTextField(value = description, onValueChange = { description = it }, label = { Text("描述") }, modifier = Modifier.fillMaxWidth(), minLines = 2)
-                OutlinedTextField(value = truePurpose, onValueChange = { truePurpose = it }, label = { Text("真实目的") }, modifier = Modifier.fillMaxWidth(), minLines = 2)
+                OutlinedTextField(value = occupation, onValueChange = { occupation = it }, label = { Text(LocalizedStrings.entityOccupation) }, singleLine = true, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(value = description, onValueChange = { description = it }, label = { Text(LocalizedStrings.entityDescription) }, modifier = Modifier.fillMaxWidth(), minLines = 2)
+                OutlinedTextField(value = truePurpose, onValueChange = { truePurpose = it }, label = { Text(LocalizedStrings.entityTruePurpose) }, modifier = Modifier.fillMaxWidth(), minLines = 2)
             }
         },
         confirmButton = {
-            TextButton(onClick = { onSave(name, alias, occupation, description, truePurpose, gender) }, enabled = name.isNotBlank()) { Text("保存") }
+            TextButton(onClick = { onSave(name, alias, occupation, description, truePurpose, gender) }, enabled = name.isNotBlank()) { Text(LocalizedStrings.save) }
         },
         dismissButton = {
             Row {
                 if (onDelete != null) {
-                    TextButton(onClick = onDelete) { Text("删除", color = MaterialTheme.colorScheme.error) }
+                    TextButton(onClick = onDelete) { Text(LocalizedStrings.delete, color = MaterialTheme.colorScheme.error) }
                 }
-                TextButton(onClick = onDismiss) { Text("取消") }
+                TextButton(onClick = onDismiss) { Text(LocalizedStrings.cancel) }
             }
         }
     )
@@ -104,25 +105,25 @@ fun LocationEditDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(if (location == null) "添加地点" else "编辑地点") },
+        title = { Text(if (location == null) LocalizedStrings.entityAddLocation else LocalizedStrings.entityEditLocation) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedTextField(value = name, onValueChange = { name = it }, label = { Text("名称 *") }, singleLine = true, modifier = Modifier.fillMaxWidth())
-                OutlinedTextField(value = type, onValueChange = { type = it }, label = { Text("类型") }, singleLine = true, modifier = Modifier.fillMaxWidth())
-                OutlinedTextField(value = description, onValueChange = { description = it }, label = { Text("描述") }, modifier = Modifier.fillMaxWidth(), minLines = 2)
-                OutlinedTextField(value = clues, onValueChange = { clues = it }, label = { Text("线索") }, modifier = Modifier.fillMaxWidth(), minLines = 2)
-                OutlinedTextField(value = inhabitants, onValueChange = { inhabitants = it }, label = { Text("居民") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(value = name, onValueChange = { name = it }, label = { Text(LocalizedStrings.entityName) }, singleLine = true, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(value = type, onValueChange = { type = it }, label = { Text(LocalizedStrings.entityType) }, singleLine = true, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(value = description, onValueChange = { description = it }, label = { Text(LocalizedStrings.entityDescription) }, modifier = Modifier.fillMaxWidth(), minLines = 2)
+                OutlinedTextField(value = clues, onValueChange = { clues = it }, label = { Text(LocalizedStrings.entityClues) }, modifier = Modifier.fillMaxWidth(), minLines = 2)
+                OutlinedTextField(value = inhabitants, onValueChange = { inhabitants = it }, label = { Text(LocalizedStrings.entityInhabitants) }, singleLine = true, modifier = Modifier.fillMaxWidth())
             }
         },
         confirmButton = {
-            TextButton(onClick = { onSave(name, type, description, clues, inhabitants) }, enabled = name.isNotBlank()) { Text("保存") }
+            TextButton(onClick = { onSave(name, type, description, clues, inhabitants) }, enabled = name.isNotBlank()) { Text(LocalizedStrings.save) }
         },
         dismissButton = {
             Row {
                 if (onDelete != null) {
-                    TextButton(onClick = onDelete) { Text("删除", color = MaterialTheme.colorScheme.error) }
+                    TextButton(onClick = onDelete) { Text(LocalizedStrings.delete, color = MaterialTheme.colorScheme.error) }
                 }
-                TextButton(onClick = onDismiss) { Text("取消") }
+                TextButton(onClick = onDismiss) { Text(LocalizedStrings.cancel) }
             }
         }
     )
@@ -143,25 +144,25 @@ fun OrganizationEditDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(if (organization == null) "添加组织" else "编辑组织") },
+        title = { Text(if (organization == null) LocalizedStrings.entityAddOrganization else LocalizedStrings.entityEditOrganization) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedTextField(value = name, onValueChange = { name = it }, label = { Text("名称 *") }, singleLine = true, modifier = Modifier.fillMaxWidth())
-                OutlinedTextField(value = type, onValueChange = { type = it }, label = { Text("类型") }, singleLine = true, modifier = Modifier.fillMaxWidth())
-                OutlinedTextField(value = description, onValueChange = { description = it }, label = { Text("描述") }, modifier = Modifier.fillMaxWidth(), minLines = 2)
-                OutlinedTextField(value = members, onValueChange = { members = it }, label = { Text("成员") }, modifier = Modifier.fillMaxWidth(), minLines = 2)
-                OutlinedTextField(value = goals, onValueChange = { goals = it }, label = { Text("目标") }, modifier = Modifier.fillMaxWidth(), minLines = 2)
+                OutlinedTextField(value = name, onValueChange = { name = it }, label = { Text(LocalizedStrings.entityName) }, singleLine = true, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(value = type, onValueChange = { type = it }, label = { Text(LocalizedStrings.entityType) }, singleLine = true, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(value = description, onValueChange = { description = it }, label = { Text(LocalizedStrings.entityDescription) }, modifier = Modifier.fillMaxWidth(), minLines = 2)
+                OutlinedTextField(value = members, onValueChange = { members = it }, label = { Text(LocalizedStrings.entityMembers) }, modifier = Modifier.fillMaxWidth(), minLines = 2)
+                OutlinedTextField(value = goals, onValueChange = { goals = it }, label = { Text(LocalizedStrings.entityGoals) }, modifier = Modifier.fillMaxWidth(), minLines = 2)
             }
         },
         confirmButton = {
-            TextButton(onClick = { onSave(name, type, description, members, goals) }, enabled = name.isNotBlank()) { Text("保存") }
+            TextButton(onClick = { onSave(name, type, description, members, goals) }, enabled = name.isNotBlank()) { Text(LocalizedStrings.save) }
         },
         dismissButton = {
             Row {
                 if (onDelete != null) {
-                    TextButton(onClick = onDelete) { Text("删除", color = MaterialTheme.colorScheme.error) }
+                    TextButton(onClick = onDelete) { Text(LocalizedStrings.delete, color = MaterialTheme.colorScheme.error) }
                 }
-                TextButton(onClick = onDismiss) { Text("取消") }
+                TextButton(onClick = onDismiss) { Text(LocalizedStrings.cancel) }
             }
         }
     )
@@ -181,24 +182,24 @@ fun ClueEditDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(if (clue == null) "添加线索" else "编辑线索") },
+        title = { Text(if (clue == null) LocalizedStrings.entityAddClue else LocalizedStrings.entityEditClue) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedTextField(value = name, onValueChange = { name = it }, label = { Text("名称 *") }, singleLine = true, modifier = Modifier.fillMaxWidth())
-                OutlinedTextField(value = type, onValueChange = { type = it }, label = { Text("类型") }, singleLine = true, modifier = Modifier.fillMaxWidth())
-                OutlinedTextField(value = description, onValueChange = { description = it }, label = { Text("描述") }, modifier = Modifier.fillMaxWidth(), minLines = 3)
-                OutlinedTextField(value = source, onValueChange = { source = it }, label = { Text("来源") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(value = name, onValueChange = { name = it }, label = { Text(LocalizedStrings.entityName) }, singleLine = true, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(value = type, onValueChange = { type = it }, label = { Text(LocalizedStrings.entityType) }, singleLine = true, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(value = description, onValueChange = { description = it }, label = { Text(LocalizedStrings.entityDescription) }, modifier = Modifier.fillMaxWidth(), minLines = 3)
+                OutlinedTextField(value = source, onValueChange = { source = it }, label = { Text(LocalizedStrings.entitySource) }, singleLine = true, modifier = Modifier.fillMaxWidth())
             }
         },
         confirmButton = {
-            TextButton(onClick = { onSave(name, type, description, source) }, enabled = name.isNotBlank()) { Text("保存") }
+            TextButton(onClick = { onSave(name, type, description, source) }, enabled = name.isNotBlank()) { Text(LocalizedStrings.save) }
         },
         dismissButton = {
             Row {
                 if (onDelete != null) {
-                    TextButton(onClick = onDelete) { Text("删除", color = MaterialTheme.colorScheme.error) }
+                    TextButton(onClick = onDelete) { Text(LocalizedStrings.delete, color = MaterialTheme.colorScheme.error) }
                 }
-                TextButton(onClick = onDismiss) { Text("取消") }
+                TextButton(onClick = onDismiss) { Text(LocalizedStrings.cancel) }
             }
         }
     )

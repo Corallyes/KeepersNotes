@@ -6,6 +6,12 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface ModuleLocationDao {
+    @Query("SELECT * FROM module_locations")
+    fun getAll(): Flow<List<ModuleLocationEntity>>
+
+    @Query("DELETE FROM module_locations")
+    suspend fun deleteAll()
+
     @Query("SELECT * FROM module_locations WHERE moduleId = :moduleId ORDER BY sortOrder, createTime")
     fun getByModuleId(moduleId: String): Flow<List<ModuleLocationEntity>>
 
@@ -17,6 +23,9 @@ interface ModuleLocationDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insert(entity: ModuleLocationEntity)
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertAll(entities: List<ModuleLocationEntity>)
 
     @Update
     suspend fun update(entity: ModuleLocationEntity)

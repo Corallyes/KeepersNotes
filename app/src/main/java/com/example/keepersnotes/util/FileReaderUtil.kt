@@ -6,6 +6,7 @@ import java.io.BufferedReader
 import java.io.ByteArrayOutputStream
 import java.io.File
 import java.io.InputStreamReader
+import com.example.keepersnotes.util.LocalizedStrings
 import java.nio.charset.Charset
 
 object FileReaderUtil {
@@ -23,12 +24,63 @@ object FileReaderUtil {
             when {
                 mimeType == "text/plain" || fileName.endsWith(".txt") -> readTxtFile(context, uri)
                 mimeType.contains("wordprocessingml") || fileName.endsWith(".docx") -> readDocxFile(context, uri)
-                fileName.endsWith(".doc") -> Result.failure(Exception("不支持 .doc 格式，请转换为 .docx 后重试"))
-                else -> Result.failure(Exception("不支持的文件格式，仅支持 .txt 和 .docx"))
+                fileName.endsWith(".doc") -> Result.failure(Exception(LocalizedStrings.unsupportedDocFormat))
+                // 如果无法确定文件类型，尝试作为文本文件读取
+                mimeType.startsWith("text/") || mimeType.isEmpty() -> {
+                    // 尝试读取前几个字节来判断是否为文本文件
+                    val bytes = context.contentResolver.openInputStream(uri)?.use { it.readBytes() }
+                    if (bytes != null && isLikelyTextFile(bytes)) {
+                        val content = decodeBytes(bytes)
+                        Result.success(content)
+                    } else {
+                        Result.failure(Exception(LocalizedStrings.unsupportedFileFormat))
+                    }
+                }
+                else -> Result.failure(Exception(LocalizedStrings.unsupportedFileFormat))
             }
         } catch (e: Exception) {
-            Result.failure(Exception("读取文件失败: ${e.message}"))
+            Result.failure(Exception("${LocalizedStrings.readFileFailed}: ${e.message}"))
         }
+    }
+
+    /**
+     * 检查字节数组是否可能是文本文件。
+     * 通过检查前几个字节的模式来判断。
+     */
+    private fun isLikelyTextFile(bytes: ByteArray): Boolean {
+        if (bytes.isEmpty()) return true
+
+        // 检查是否以常见文本文件 BOM 开头
+        if (bytes.size >= 3 && bytes[0] == 0xEF.toByte() && bytes[1] == 0xBB.toByte() && bytes[2] == 0xBF.toByte()) {
+            return true // UTF-8 BOM
+        }
+        if (bytes.size >= 2 && bytes[0] == 0xFF.toByte() && bytes[1] == 0xFE.toByte()) {
+            return true // UTF-16 LE BOM
+        }
+        if (bytes.size >= 2 && bytes[0] == 0xFE.toByte() && bytes[1] == 0xFF.toByte()) {
+            return true // UTF-16 BE BOM
+        }
+
+        // 检查前 1024 字节中是否包含过多的 null 字节（二进制文件的特征）
+        val checkLength = minOf(bytes.size, 1024)
+        var nullCount = 0
+        for (i in 0 until checkLength) {
+            if (bytes[i] == 0.toByte()) {
+                nullCount++
+            }
+        }
+
+        // 如果 null 字节超过 10%，可能是二进制文件
+        if (nullCount.toFloat() / checkLength > 0.1f) {
+            return false
+        }
+
+        // 尝试解码为 UTF-8，检查是否包含有效文本
+        val text = String(bytes, Charsets.UTF_8)
+        val printableCount = text.count { it.isLetterOrDigit() || it.isWhitespace() || it in ".,;:!?\"'()[]{}<>-+=/\\@#$%^&*|~`" }
+
+        // 如果可打印字符超过 70%，认为是文本文件
+        return printableCount.toFloat() / text.length > 0.7f
     }
 
     /**
@@ -38,7 +90,7 @@ object FileReaderUtil {
     private fun readTxtFile(context: Context, uri: Uri): Result<String> {
         val bytes = context.contentResolver.openInputStream(uri)?.use { inputStream ->
             inputStream.readBytes()
-        } ?: return Result.failure(Exception("无法打开文件"))
+        } ?: return Result.failure(Exception(LocalizedStrings.cannotOpenFile))
 
         if (bytes.isEmpty()) return Result.success("")
 
@@ -124,26 +176,91 @@ object FileReaderUtil {
     }
 
     /**
-     * 读取 DOCX 文件 — 使用 DocxParser 三层识别转 Markdown。
+     * 读取 DOCX 文件 — 使用 StructuredDocxParser (python-docx) 输出结构化节点。
+     * 回退：若 Python 不可用，使用旧 DocxParser 转 Markdown。
      */
     private fun readDocxFile(context: Context, uri: Uri): Result<String> {
         val content = context.contentResolver.openInputStream(uri)?.use { inputStream ->
             val tempFile = File.createTempFile("docx_import_", ".docx", context.cacheDir)
             try {
                 tempFile.outputStream().use { out -> inputStream.copyTo(out) }
-                DocxParser.parse(tempFile)
+                // Try structured parser first, fall back to legacy
+                try {
+                    val nodes = StructuredDocxParser.parse(context, tempFile)
+                    nodesToMarkdownFallback(nodes)
+                } catch (e: Exception) {
+                    DocxParser.parse(tempFile)
+                }
             } finally {
                 tempFile.delete()
             }
-        } ?: return Result.failure(Exception("无法打开文件"))
+        } ?: return Result.failure(Exception(LocalizedStrings.cannotOpenFile))
         return Result.success(content)
     }
 
     /**
-     * 读取 DOCX 文件对象并转 Markdown（供 ZipImportManager 使用）。
+     * 读取 DOCX 文件为结构化 DocumentNode 列表（新流程）。
+     */
+    fun readDocxStructured(context: Context, uri: Uri): Result<List<StructuredDocxParser.DocumentNode>> {
+        return try {
+            val nodes = context.contentResolver.openInputStream(uri)?.use { inputStream ->
+                val tempFile = File.createTempFile("docx_import_", ".docx", context.cacheDir)
+                try {
+                    tempFile.outputStream().use { out -> inputStream.copyTo(out) }
+                    StructuredDocxParser.parse(context, tempFile)
+                } finally {
+                    tempFile.delete()
+                }
+            } ?: return Result.failure(Exception(LocalizedStrings.cannotOpenFile))
+            Result.success(nodes)
+        } catch (e: Exception) {
+            Result.failure(Exception("${LocalizedStrings.docxParseFailed}: ${e.message}"))
+        }
+    }
+
+    /**
+     * 读取 DOCX 文件对象为结构化节点（供 ZipImportManager 使用）。
+     */
+    fun readDocxStructured(context: Context, file: File): List<StructuredDocxParser.DocumentNode> {
+        return StructuredDocxParser.parse(context, file)
+    }
+
+    /**
+     * 读取 DOCX 文件对象并转 Markdown（供 ZipImportManager 使用，兼容旧流程）。
      */
     fun readDocxToMarkdown(file: File): String {
         return DocxParser.parse(file)
+    }
+
+    /**
+     * 将 DocumentNode 列表转为 Markdown 兜底格式（仅用于旧流程兼容）。
+     */
+    private fun nodesToMarkdownFallback(nodes: List<StructuredDocxParser.DocumentNode>): String {
+        val sb = StringBuilder()
+        for (node in nodes) {
+            when (node.type) {
+                "heading" -> {
+                    sb.appendLine("#".repeat(node.level) + " " + node.content)
+                }
+                "paragraph" -> sb.appendLine(node.content)
+                "table" -> {
+                    node.tableData?.forEachIndexed { idx, row ->
+                        sb.appendLine("| ${row.joinToString(" | ")} |")
+                        if (idx == 0) {
+                            sb.appendLine("| ${row.map { "---" }.joinToString(" | ")} |")
+                        }
+                    }
+                }
+                "image" -> sb.appendLine("![image](${node.imageUri})")
+                "quote" -> sb.appendLine("> ${node.content}")
+                "list_item" -> {
+                    val indent = "  ".repeat(node.level.coerceAtMost(3))
+                    sb.appendLine("$indent- ${node.content}")
+                }
+            }
+            sb.appendLine()
+        }
+        return sb.toString().trim()
     }
 
     /**
@@ -153,6 +270,25 @@ object FileReaderUtil {
         val bytes = file.readBytes()
         if (bytes.isEmpty()) return ""
         return decodeBytes(bytes)
+    }
+
+    /**
+     * 读取 TXT 文件为结构化 DocumentNode 列表（新流程，使用 Python 解析器）。
+     */
+    fun readTxtStructured(context: Context, uri: Uri): Result<List<StructuredTxtParser.DocumentNode>> {
+        return try {
+            val nodes = StructuredTxtParser.parseFromUri(context, uri)
+            Result.success(nodes)
+        } catch (e: Exception) {
+            Result.failure(Exception("${LocalizedStrings.readFileFailed}: ${e.message}"))
+        }
+    }
+
+    /**
+     * 读取 TXT 文件对象为结构化节点（供 ZipImportManager 使用）。
+     */
+    fun readTxtStructured(context: Context, file: File): List<StructuredTxtParser.DocumentNode> {
+        return StructuredTxtParser.parse(context, file)
     }
 
     private fun getFileName(context: Context, uri: Uri): String {

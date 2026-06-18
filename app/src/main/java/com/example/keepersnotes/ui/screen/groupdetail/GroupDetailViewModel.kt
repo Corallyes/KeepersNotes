@@ -6,6 +6,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.keepersnotes.data.local.entity.*
 import com.example.keepersnotes.data.repository.*
+import com.example.keepersnotes.util.LocalizedStrings
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
@@ -67,6 +68,10 @@ class GroupDetailViewModel @Inject constructor(
         }.combine(
             kpMemoRepository.getMemosByGroupId(groupId)
         ) { (group, pcs, npcs, sessions, todos), memos ->
+            Sextuple(group, pcs, npcs, sessions, todos, memos)
+        }.combine(
+            groupRelationshipRepository.getByGroupId(groupId)
+        ) { (group, pcs, npcs, sessions, todos, memos), relationships ->
             GroupDetailUiState(
                 group = group,
                 pcs = pcs,
@@ -74,21 +79,13 @@ class GroupDetailViewModel @Inject constructor(
                 sessions = sessions,
                 memos = memos,
                 pendingTodos = todos,
+                relationships = relationships,
                 isLoading = false
             )
         }.onEach { state ->
-            Log.d("GroupDetail", "state updated: memos=${state.memos.size}, group=${state.group?.groupName}")
+            Log.d("GroupDetail", "state updated: pcs=${state.pcs.size}, npcs=${state.npcs.size}, rels=${state.relationships.size}")
             _uiState.value = state
         }.launchIn(viewModelScope)
-
-        // Observe group relationships
-        groupRelationshipRepository.getByGroupId(groupId)
-            .onEach { relationships ->
-                Log.d("GroupDetail", "relationships updated: ${relationships.size} for group $groupId")
-                relationships.forEach { Log.d("GroupDetail", "  rel: ${it.sourceId}(${it.sourceType}) -> ${it.targetId}(${it.targetType}) [${it.relationType}]") }
-                _uiState.update { it.copy(relationships = relationships) }
-            }
-            .launchIn(viewModelScope)
     }
 
     fun updateGroupStatus(status: String) {
@@ -127,10 +124,10 @@ class GroupDetailViewModel @Inject constructor(
                                 eventId = java.util.UUID.randomUUID().toString(),
                                 groupId = groupId,
                                 title = when {
-                                    isStart && isEnd -> "$name 开团"
-                                    isStart -> "$name 开团日"
-                                    isEnd -> "$name 预计结束"
-                                    else -> "$name 开团中"
+                                    isStart && isEnd -> LocalizedStrings.calendarSessionStart(name)
+                                    isStart -> LocalizedStrings.calendarSessionStartDate(name)
+                                    isEnd -> LocalizedStrings.calendarSessionEndDate(name)
+                                    else -> LocalizedStrings.calendarSessionInProgress(name)
                                 },
                                 date = date,
                                 time = time,
@@ -149,7 +146,7 @@ class GroupDetailViewModel @Inject constructor(
                             CalendarEventEntity(
                                 eventId = java.util.UUID.randomUUID().toString(),
                                 groupId = groupId,
-                                title = "$name 开团日",
+                                title = LocalizedStrings.calendarSessionStartDate(name),
                                 date = date,
                                 time = time,
                                 type = "session_start"
@@ -161,7 +158,7 @@ class GroupDetailViewModel @Inject constructor(
                             CalendarEventEntity(
                                 eventId = java.util.UUID.randomUUID().toString(),
                                 groupId = groupId,
-                                title = "$name 预计结束",
+                                title = LocalizedStrings.calendarSessionEndDate(name),
                                 date = date,
                                 time = time,
                                 type = "session_end"
@@ -247,4 +244,13 @@ private data class Quintuple<A, B, C, D, E>(
     val third: C,
     val fourth: D,
     val fifth: E
+)
+
+private data class Sextuple<A, B, C, D, E, F>(
+    val first: A,
+    val second: B,
+    val third: C,
+    val fourth: D,
+    val fifth: E,
+    val sixth: F
 )

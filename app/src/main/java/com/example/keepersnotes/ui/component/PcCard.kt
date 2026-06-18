@@ -11,6 +11,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.example.keepersnotes.data.local.entity.PlayerCharacterEntity
 import com.example.keepersnotes.util.Constants
+import com.example.keepersnotes.util.LocalizedStrings
 
 @Composable
 fun PcCard(
@@ -71,10 +72,10 @@ fun PcCard(
 @Composable
 fun PcStatusBadge(status: String) {
     val (label, color) = when (status) {
-        Constants.PC_STATUS_NORMAL -> "正常" to MaterialTheme.colorScheme.primary
-        Constants.PC_STATUS_WOUNDED -> "重伤" to MaterialTheme.colorScheme.error
-        Constants.PC_STATUS_INSANE -> "疯狂" to MaterialTheme.colorScheme.tertiary
-        Constants.PC_STATUS_DEAD -> "死亡" to MaterialTheme.colorScheme.outline
+        Constants.PC_STATUS_NORMAL -> LocalizedStrings.pcStatusNormal to MaterialTheme.colorScheme.primary
+        Constants.PC_STATUS_WOUNDED -> LocalizedStrings.pcStatusWounded to MaterialTheme.colorScheme.error
+        Constants.PC_STATUS_INSANE -> LocalizedStrings.pcStatusInsane to MaterialTheme.colorScheme.tertiary
+        Constants.PC_STATUS_DEAD -> LocalizedStrings.pcStatusDead to MaterialTheme.colorScheme.outline
         else -> status to MaterialTheme.colorScheme.outline
     }
     SuggestionChip(

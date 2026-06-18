@@ -6,6 +6,12 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface ModuleClueDao {
+    @Query("SELECT * FROM module_clues")
+    fun getAll(): Flow<List<ModuleClueEntity>>
+
+    @Query("DELETE FROM module_clues")
+    suspend fun deleteAll()
+
     @Query("SELECT * FROM module_clues WHERE moduleId = :moduleId ORDER BY sortOrder, createTime")
     fun getByModuleId(moduleId: String): Flow<List<ModuleClueEntity>>
 

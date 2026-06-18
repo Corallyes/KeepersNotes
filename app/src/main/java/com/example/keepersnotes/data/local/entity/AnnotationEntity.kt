@@ -15,13 +15,14 @@ import androidx.room.PrimaryKey
             onDelete = ForeignKey.CASCADE
         )
     ],
-    indices = [Index("moduleId"), Index("chapterId")]
+    indices = [Index("moduleId"), Index("chapterId"), Index("nodeId")]
 )
 data class AnnotationEntity(
     @PrimaryKey
     val annotationId: String,
     val moduleId: String,
-    val chapterId: String,
+    val chapterId: String = "",
+    val nodeId: String? = null,
     val startIndex: Int,
     val endIndex: Int,
     val selectedText: String,

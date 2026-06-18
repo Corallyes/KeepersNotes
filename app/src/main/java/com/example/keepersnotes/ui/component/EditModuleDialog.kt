@@ -9,6 +9,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.example.keepersnotes.data.local.entity.ModuleEntity
 import com.example.keepersnotes.util.Constants
+import com.example.keepersnotes.util.LocalizedStrings
 
 @Composable
 fun EditModuleDialog(
@@ -27,7 +28,7 @@ fun EditModuleDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("编辑模组信息") },
+        title = { Text(LocalizedStrings.editModuleTitle) },
         text = {
             Column(
                 modifier = Modifier
@@ -38,26 +39,26 @@ fun EditModuleDialog(
                 OutlinedTextField(
                     value = title,
                     onValueChange = { title = it },
-                    label = { Text("模组名称 *") },
+                    label = { Text(LocalizedStrings.editModuleName) },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true
                 )
                 OutlinedTextField(
                     value = author,
                     onValueChange = { author = it },
-                    label = { Text("作者") },
+                    label = { Text(LocalizedStrings.editModuleAuthor) },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true
                 )
 
                 // 游戏系统
-                Text("游戏系统", style = MaterialTheme.typography.labelMedium)
+                Text(LocalizedStrings.editModuleSystem, style = MaterialTheme.typography.labelMedium)
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     listOf(
-                        "" to "无",
+                        "" to LocalizedStrings.editModuleNone,
                         Constants.SYSTEM_COC7 to "COC7",
                         Constants.SYSTEM_DND5E to "DND5e",
-                        Constants.SYSTEM_CUSTOM to "自定义"
+                        Constants.SYSTEM_CUSTOM to LocalizedStrings.editModuleCustom
                     ).forEach { (value, label) ->
                         FilterChip(
                             selected = system == value,
@@ -68,9 +69,14 @@ fun EditModuleDialog(
                 }
 
                 // 难度
-                Text("难度", style = MaterialTheme.typography.labelMedium)
+                Text(LocalizedStrings.editModuleDifficulty, style = MaterialTheme.typography.labelMedium)
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    listOf("" to "无", "新手" to "新手", "进阶" to "进阶", "高难" to "高难").forEach { (value, label) ->
+                    listOf(
+                        "" to LocalizedStrings.editModuleNone,
+                        "新手" to LocalizedStrings.editModuleBeginner,
+                        "进阶" to LocalizedStrings.editModuleIntermediate,
+                        "高难" to LocalizedStrings.editModuleAdvanced
+                    ).forEach { (value, label) ->
                         FilterChip(
                             selected = difficulty == value,
                             onClick = { difficulty = if (difficulty == value) "" else value },
@@ -82,28 +88,28 @@ fun EditModuleDialog(
                 OutlinedTextField(
                     value = playerCount,
                     onValueChange = { playerCount = it },
-                    label = { Text("玩家人数（如 3-5）") },
+                    label = { Text(LocalizedStrings.editModulePlayerCount) },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true
                 )
                 OutlinedTextField(
                     value = duration,
                     onValueChange = { duration = it },
-                    label = { Text("时长（如 4-6h）") },
+                    label = { Text(LocalizedStrings.editModuleDuration) },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true
                 )
                 OutlinedTextField(
                     value = synopsis,
                     onValueChange = { synopsis = it },
-                    label = { Text("简介") },
+                    label = { Text(LocalizedStrings.editModuleSummary) },
                     modifier = Modifier.fillMaxWidth(),
                     minLines = 3
                 )
                 OutlinedTextField(
                     value = tags,
                     onValueChange = { tags = it },
-                    label = { Text("标签（逗号分隔）") },
+                    label = { Text(LocalizedStrings.editModuleTags) },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true
                 )
@@ -127,12 +133,12 @@ fun EditModuleDialog(
                 },
                 enabled = title.isNotBlank()
             ) {
-                Text("保存")
+                Text(LocalizedStrings.save)
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("取消")
+                Text(LocalizedStrings.cancel)
             }
         }
     )

@@ -8,7 +8,8 @@ import com.example.keepersnotes.data.local.entity.CalendarEventEntity
 import com.example.keepersnotes.data.local.entity.KpMemoEntity
 import com.example.keepersnotes.data.repository.CalendarEventRepository
 import com.example.keepersnotes.data.repository.KpMemoRepository
-import com.example.keepersnotes.util.NotificationHelper
+import com.example.keepersnotes.notification.NotificationHelper
+import com.example.keepersnotes.util.LocalizedStrings
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
@@ -34,15 +35,15 @@ class MemoDetailViewModel @Inject constructor(
             // 处理通知调度
             if (context != null) {
                 if (updatedMemo.isNotificationEnabled && updatedMemo.notificationTime != null && updatedMemo.notificationTime > System.currentTimeMillis()) {
-                    NotificationHelper.scheduleNotification(
+                    NotificationHelper.scheduleMemoNotification(
                         context = context,
                         notificationId = updatedMemo.notificationId.toLong(),
-                        title = updatedMemo.title.ifBlank { "备忘录提醒" },
+                        title = updatedMemo.title.ifBlank { LocalizedStrings.memoReminderTitle },
                         content = updatedMemo.content.take(100),
                         triggerTime = updatedMemo.notificationTime
                     )
                 } else {
-                    NotificationHelper.cancelNotification(context, updatedMemo.notificationId.toLong())
+                    NotificationHelper.cancelMemoNotification(context, updatedMemo.notificationId.toLong())
                 }
             }
 
@@ -68,7 +69,7 @@ class MemoDetailViewModel @Inject constructor(
                     val timeStr = "${cal.get(java.util.Calendar.HOUR_OF_DAY).toString().padStart(2, '0')}:${cal.get(java.util.Calendar.MINUTE).toString().padStart(2, '0')}"
                     calendarEventRepository.create(
                         groupId = updatedMemo.groupId,
-                        title = "⏰ ${updatedMemo.title.ifBlank { "备忘录提醒" }}",
+                        title = "⏰ ${updatedMemo.title.ifBlank { LocalizedStrings.memoReminderTitle }}",
                         date = dateOnly,
                         time = timeStr,
                         type = "memo_reminder"
@@ -87,7 +88,7 @@ class MemoDetailViewModel @Inject constructor(
             val currentMemo = memo.value
             // 取消通知
             if (context != null && currentMemo != null && currentMemo.isNotificationEnabled) {
-                NotificationHelper.cancelNotification(context, currentMemo.notificationId.toLong())
+                NotificationHelper.cancelMemoNotification(context, currentMemo.notificationId.toLong())
             }
             // 删除对应的日历日程
             if (currentMemo != null && currentMemo.isNotificationEnabled) {

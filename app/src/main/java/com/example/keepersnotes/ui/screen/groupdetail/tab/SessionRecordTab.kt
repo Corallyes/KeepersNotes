@@ -12,6 +12,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.example.keepersnotes.data.local.entity.SessionEntity
 import com.example.keepersnotes.ui.component.SessionCard
+import com.example.keepersnotes.util.LocalizedStrings
 
 @Composable
 fun SessionRecordTab(
@@ -23,7 +24,7 @@ fun SessionRecordTab(
         if (sessions.isEmpty()) {
             Box(modifier = Modifier.fillMaxSize().padding(32.dp)) {
                 Text(
-                    text = "还没有Session记录",
+                    text = LocalizedStrings.sessionNoSessions,
                     style = MaterialTheme.typography.bodyLarge,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -48,7 +49,7 @@ fun SessionRecordTab(
                 .align(Alignment.BottomEnd)
                 .padding(16.dp)
         ) {
-            Icon(Icons.Default.Add, contentDescription = "添加Session记录")
+            Icon(Icons.Default.Add, contentDescription = LocalizedStrings.sessionAdd)
         }
     }
 }

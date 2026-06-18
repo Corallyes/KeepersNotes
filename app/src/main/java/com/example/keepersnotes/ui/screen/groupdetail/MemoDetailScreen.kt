@@ -17,6 +17,7 @@ import com.example.keepersnotes.data.local.entity.KpMemoEntity
 import com.example.keepersnotes.ui.component.CompactTopBar
 import com.example.keepersnotes.ui.component.MemoTypeBadge
 import com.example.keepersnotes.util.Constants
+import com.example.keepersnotes.util.LocalizedStrings
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -37,18 +38,18 @@ fun MemoDetailScreen(
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
         topBar = {
             CompactTopBar(
-                title = memo?.title ?: "备忘详情",
+                title = memo?.title ?: LocalizedStrings.memoDetail,
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "返回")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = LocalizedStrings.back)
                     }
                 },
                 actions = {
                     IconButton(onClick = { showEditSheet = true }) {
-                        Icon(Icons.Default.Edit, contentDescription = "编辑")
+                        Icon(Icons.Default.Edit, contentDescription = LocalizedStrings.edit)
                     }
                     IconButton(onClick = { showDeleteDialog = true }) {
-                        Icon(Icons.Default.Delete, contentDescription = "删除")
+                        Icon(Icons.Default.Delete, contentDescription = LocalizedStrings.delete)
                     }
                 }
             )
@@ -57,7 +58,7 @@ fun MemoDetailScreen(
         val currentMemo = memo
         if (currentMemo == null) {
             Box(modifier = Modifier.fillMaxSize().padding(padding)) {
-                Text("加载中...", modifier = Modifier.padding(16.dp))
+                Text(LocalizedStrings.groupLoading, modifier = Modifier.padding(16.dp))
             }
             return@Scaffold
         }
@@ -84,20 +85,12 @@ fun MemoDetailScreen(
                             modifier = Modifier.weight(1f)
                         )
                     }
-                    if (currentMemo.isHidden) {
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Text(
-                            "暗线笔记",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.error
-                        )
-                    }
                     if (currentMemo.priority > 0) {
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
                             text = when (currentMemo.priority) {
-                                1 -> "重要"
-                                2 -> "紧急"
+                                1 -> LocalizedStrings.memoPriorityImportant
+                                2 -> LocalizedStrings.memoPriorityUrgent
                                 else -> ""
                             },
                             style = MaterialTheme.typography.labelSmall,
@@ -112,7 +105,7 @@ fun MemoDetailScreen(
             if (currentMemo.content.isNotBlank()) {
                 Card(modifier = Modifier.fillMaxWidth()) {
                     Column(modifier = Modifier.padding(16.dp)) {
-                        Text("内容", style = MaterialTheme.typography.titleSmall)
+                        Text(LocalizedStrings.memoContent, style = MaterialTheme.typography.titleSmall)
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(currentMemo.content, style = MaterialTheme.typography.bodyMedium)
                     }
@@ -120,10 +113,10 @@ fun MemoDetailScreen(
             }
 
             // 关联的模组和章节
-            if (currentMemo.moduleId != null || currentMemo.chapterTitle.isNotBlank()) {
+            if (currentMemo.chapterTitle.isNotBlank()) {
                 Card(modifier = Modifier.fillMaxWidth()) {
                     Column(modifier = Modifier.padding(16.dp)) {
-                        Text("关联内容", style = MaterialTheme.typography.titleSmall)
+                        Text(LocalizedStrings.memoLinkedContent, style = MaterialTheme.typography.titleSmall)
                         Spacer(modifier = Modifier.height(8.dp))
                         if (currentMemo.chapterTitle.isNotBlank()) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -148,7 +141,7 @@ fun MemoDetailScreen(
             if (currentMemo.tags.isNotBlank()) {
                 Card(modifier = Modifier.fillMaxWidth()) {
                     Column(modifier = Modifier.padding(16.dp)) {
-                        Text("标签", style = MaterialTheme.typography.titleSmall)
+                        Text(LocalizedStrings.memoTags, style = MaterialTheme.typography.titleSmall)
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(currentMemo.tags, style = MaterialTheme.typography.bodyMedium)
                     }
@@ -167,7 +160,7 @@ fun MemoDetailScreen(
                             onCheckedChange = { viewModel.toggleCompleted() }
                         )
                         Text(
-                            if (currentMemo.isCompleted) "已完成" else "未完成",
+                            if (currentMemo.isCompleted) LocalizedStrings.memoCompleted else LocalizedStrings.memoNotCompleted,
                             style = MaterialTheme.typography.bodyMedium
                         )
                     }
@@ -188,8 +181,8 @@ fun MemoDetailScreen(
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Column {
-                            Text("定时提醒", style = MaterialTheme.typography.titleSmall)
-                            val dateFormat = SimpleDateFormat("yyyy年MM月dd日 HH:mm", Locale.getDefault())
+                            Text(LocalizedStrings.memoNotification, style = MaterialTheme.typography.titleSmall)
+                            val dateFormat = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault())
                             Text(
                                 dateFormat.format(Date(currentMemo.notificationTime!!)),
                                 style = MaterialTheme.typography.bodyMedium
@@ -219,8 +212,8 @@ fun MemoDetailScreen(
     if (showDeleteDialog && deleteMemo != null) {
         AlertDialog(
             onDismissRequest = { showDeleteDialog = false },
-            title = { Text("删除备忘") },
-            text = { Text("确定要删除「${deleteMemo.title}」吗？此操作不可撤销。") },
+            title = { Text(LocalizedStrings.memoDeleteTitle) },
+            text = { Text(LocalizedStrings.memoDeleteConfirm(deleteMemo.title)) },
             confirmButton = {
                 TextButton(
                     onClick = {
@@ -230,12 +223,12 @@ fun MemoDetailScreen(
                         }
                     }
                 ) {
-                    Text("删除", color = MaterialTheme.colorScheme.error)
+                    Text(LocalizedStrings.delete, color = MaterialTheme.colorScheme.error)
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showDeleteDialog = false }) {
-                    Text("取消")
+                    Text(LocalizedStrings.cancel)
                 }
             }
         )
@@ -252,7 +245,6 @@ private fun EditMemoSheet(
     var type by remember { mutableStateOf(memo.type) }
     var title by remember { mutableStateOf(memo.title) }
     var content by remember { mutableStateOf(memo.content) }
-    var isHidden by remember { mutableStateOf(memo.isHidden) }
     var priority by remember { mutableStateOf(memo.priority) }
     var tags by remember { mutableStateOf(memo.tags) }
     var isNotificationEnabled by remember { mutableStateOf(memo.isNotificationEnabled) }
@@ -277,12 +269,11 @@ private fun EditMemoSheet(
 
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val types = listOf(
-        Constants.MEMO_TYPE_TODO to "待办",
-        Constants.MEMO_TYPE_REMINDER to "提醒",
-        Constants.MEMO_TYPE_RULE to "规则笔记",
-        Constants.MEMO_TYPE_PLOT to "剧情笔记",
-        Constants.MEMO_TYPE_CLUE to "线索笔记",
-        Constants.MEMO_TYPE_HIDDEN to "暗线笔记"
+        Constants.MEMO_TYPE_TODO to LocalizedStrings.memoType(Constants.MEMO_TYPE_TODO),
+        Constants.MEMO_TYPE_REMINDER to LocalizedStrings.memoType(Constants.MEMO_TYPE_REMINDER),
+        Constants.MEMO_TYPE_RULE to LocalizedStrings.memoType(Constants.MEMO_TYPE_RULE),
+        Constants.MEMO_TYPE_PLOT to LocalizedStrings.memoType(Constants.MEMO_TYPE_PLOT),
+        Constants.MEMO_TYPE_CLUE to LocalizedStrings.memoType(Constants.MEMO_TYPE_CLUE)
     )
 
     ModalBottomSheet(
@@ -297,10 +288,10 @@ private fun EditMemoSheet(
             contentPadding = PaddingValues(bottom = 32.dp)
         ) {
             item {
-                Text("编辑备忘", style = MaterialTheme.typography.titleLarge)
+                Text(LocalizedStrings.memoEdit, style = MaterialTheme.typography.titleLarge)
             }
             item {
-                Text("类型", style = MaterialTheme.typography.labelMedium)
+                Text(LocalizedStrings.memoTypeLabel, style = MaterialTheme.typography.labelMedium)
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     types.take(3).forEach { (value, label) ->
                         FilterChip(
@@ -324,7 +315,7 @@ private fun EditMemoSheet(
                 OutlinedTextField(
                     value = title,
                     onValueChange = { title = it },
-                    label = { Text("标题") },
+                    label = { Text(LocalizedStrings.memoTitle) },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true
                 )
@@ -333,24 +324,15 @@ private fun EditMemoSheet(
                 OutlinedTextField(
                     value = content,
                     onValueChange = { content = it },
-                    label = { Text("内容") },
+                    label = { Text(LocalizedStrings.memoContent) },
                     modifier = Modifier.fillMaxWidth(),
                     minLines = 5
                 )
             }
             item {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Checkbox(
-                        checked = isHidden,
-                        onCheckedChange = { isHidden = it }
-                    )
-                    Text("暗线笔记（仅KP可见）")
-                }
-            }
-            item {
-                Text("优先级", style = MaterialTheme.typography.labelMedium)
+                Text(LocalizedStrings.memoPriority, style = MaterialTheme.typography.labelMedium)
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    listOf(0 to "普通", 1 to "重要", 2 to "紧急").forEach { (value, label) ->
+                    listOf(0 to LocalizedStrings.memoPriorityNormal, 1 to LocalizedStrings.memoPriorityImportant, 2 to LocalizedStrings.memoPriorityUrgent).forEach { (value, label) ->
                         FilterChip(
                             selected = priority == value,
                             onClick = { priority = value },
@@ -363,7 +345,7 @@ private fun EditMemoSheet(
                 OutlinedTextField(
                     value = tags,
                     onValueChange = { tags = it },
-                    label = { Text("标签（逗号分隔）") },
+                    label = { Text(LocalizedStrings.memoTagsPlaceholder) },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true
                 )
@@ -372,20 +354,20 @@ private fun EditMemoSheet(
             if (type == Constants.MEMO_TYPE_REMINDER) {
                 item {
                     HorizontalDivider()
-                    Text("定时通知", style = MaterialTheme.typography.labelMedium)
+                    Text(LocalizedStrings.memoNotification, style = MaterialTheme.typography.labelMedium)
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Switch(
                             checked = isNotificationEnabled,
                             onCheckedChange = { isNotificationEnabled = it }
                         )
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text("开启定时提醒")
+                        Text(LocalizedStrings.memoNotificationEnable)
                     }
                 }
                 if (isNotificationEnabled) {
                     item {
-                        val dateFormat = SimpleDateFormat("yyyy年MM月dd日", Locale.getDefault())
-                        val dateText = notificationDate?.let { dateFormat.format(Date(it)) } ?: "选择日期"
+                        val dateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+                        val dateText = notificationDate?.let { dateFormat.format(Date(it)) } ?: LocalizedStrings.memoSelectDate
                         OutlinedCard(
                             onClick = { showDatePicker = true },
                             modifier = Modifier.fillMaxWidth()
@@ -432,7 +414,6 @@ private fun EditMemoSheet(
                                 type = type,
                                 title = title.trim(),
                                 content = content.trim(),
-                                isHidden = type == Constants.MEMO_TYPE_HIDDEN || isHidden,
                                 priority = priority,
                                 tags = tags.trim(),
                                 isNotificationEnabled = type == Constants.MEMO_TYPE_REMINDER && isNotificationEnabled,
@@ -444,7 +425,7 @@ private fun EditMemoSheet(
                     },
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Text("保存")
+                    Text(LocalizedStrings.save)
                 }
             }
         }
@@ -461,10 +442,10 @@ private fun EditMemoSheet(
                 TextButton(onClick = {
                     datePickerState.selectedDateMillis?.let { notificationDate = it }
                     showDatePicker = false
-                }) { Text("确定") }
+                }) { Text(LocalizedStrings.confirm) }
             },
             dismissButton = {
-                TextButton(onClick = { showDatePicker = false }) { Text("取消") }
+                TextButton(onClick = { showDatePicker = false }) { Text(LocalizedStrings.cancel) }
             }
         ) {
             DatePicker(state = datePickerState)
@@ -480,7 +461,7 @@ private fun EditMemoSheet(
         )
         AlertDialog(
             onDismissRequest = { showTimePicker = false },
-            title = { Text("选择时间") },
+            title = { Text(LocalizedStrings.groupSelectTime) },
             text = {
                 Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
                     TimePicker(state = timePickerState)
@@ -491,10 +472,10 @@ private fun EditMemoSheet(
                     notificationHour = timePickerState.hour
                     notificationMinute = timePickerState.minute
                     showTimePicker = false
-                }) { Text("确定") }
+                }) { Text(LocalizedStrings.confirm) }
             },
             dismissButton = {
-                TextButton(onClick = { showTimePicker = false }) { Text("取消") }
+                TextButton(onClick = { showTimePicker = false }) { Text(LocalizedStrings.cancel) }
             }
         )
     }

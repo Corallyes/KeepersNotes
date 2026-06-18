@@ -7,6 +7,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.example.keepersnotes.util.LocalizedStrings
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -19,7 +20,7 @@ fun AnnotationDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("添加批注") },
+        title = { Text(LocalizedStrings.annotationDialogTitle) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 // 显示选中的文本
@@ -40,7 +41,7 @@ fun AnnotationDialog(
                 OutlinedTextField(
                     value = note,
                     onValueChange = { note = it },
-                    label = { Text("批注内容") },
+                    label = { Text(LocalizedStrings.annotationContent) },
                     modifier = Modifier.fillMaxWidth(),
                     minLines = 3,
                     maxLines = 5
@@ -52,12 +53,12 @@ fun AnnotationDialog(
                 onClick = { onSave(note.trim()) },
                 enabled = note.isNotBlank()
             ) {
-                Text("保存")
+                Text(LocalizedStrings.save)
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("取消")
+                Text(LocalizedStrings.cancel)
             }
         }
     )
@@ -74,12 +75,12 @@ fun AnnotationViewDialog(
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("批注详情") },
+        title = { Text(LocalizedStrings.readerAnnotations) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 // 原文
                 Text(
-                    text = "原文",
+                    text = LocalizedStrings.readerOriginalText,
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -97,7 +98,7 @@ fun AnnotationViewDialog(
 
                 // 批注内容
                 Text(
-                    text = "批注",
+                    text = LocalizedStrings.annotationContent,
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -109,7 +110,7 @@ fun AnnotationViewDialog(
         },
         confirmButton = {
             TextButton(onClick = onEdit) {
-                Text("编辑")
+                Text(LocalizedStrings.edit)
             }
         },
         dismissButton = {
@@ -120,11 +121,11 @@ fun AnnotationViewDialog(
                         contentColor = MaterialTheme.colorScheme.error
                     )
                 ) {
-                    Text("删除")
+                    Text(LocalizedStrings.delete)
                 }
                 Spacer(modifier = Modifier.width(8.dp))
                 TextButton(onClick = onDismiss) {
-                    Text("关闭")
+                    Text(LocalizedStrings.close)
                 }
             }
         }

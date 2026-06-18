@@ -14,6 +14,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.keepersnotes.ui.component.CompactTopBar
 import com.example.keepersnotes.util.AnnouncementData
+import com.example.keepersnotes.util.LocalizedStrings
 
 data class Announcement(
     val id: String,
@@ -39,10 +40,10 @@ fun AnnouncementScreen(
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
         topBar = {
             CompactTopBar(
-                title = "公告",
+                title = LocalizedStrings.announcementTitle,
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "返回")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = LocalizedStrings.back)
                     }
                 }
             )
@@ -57,12 +58,12 @@ fun AnnouncementScreen(
         ) {
             // 最新公告
             item {
-                Text("最新公告", style = MaterialTheme.typography.titleLarge)
+                Text(LocalizedStrings.announcementLatest, style = MaterialTheme.typography.titleLarge)
             }
             if (latestAnnouncements.isEmpty()) {
                 item {
                     Text(
-                        "暂无公告",
+                        LocalizedStrings.announcementNoLatest,
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -76,12 +77,12 @@ fun AnnouncementScreen(
             // 更新日志
             item {
                 Spacer(modifier = Modifier.height(8.dp))
-                Text("更新日志", style = MaterialTheme.typography.titleLarge)
+                Text(LocalizedStrings.announcementChangelog, style = MaterialTheme.typography.titleLarge)
             }
             if (updateLogs.isEmpty()) {
                 item {
                     Text(
-                        "暂无更新日志",
+                        LocalizedStrings.announcementNoChangelog,
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )

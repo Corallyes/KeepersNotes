@@ -14,6 +14,7 @@ import com.example.keepersnotes.ui.component.GroupStatusBadge
 import com.example.keepersnotes.ui.component.StatsCard
 import com.example.keepersnotes.ui.screen.groupdetail.GroupDetailUiState
 import com.example.keepersnotes.util.Constants
+import com.example.keepersnotes.util.LocalizedStrings
 
 @Composable
 fun GroupOverviewTab(
@@ -47,7 +48,7 @@ fun GroupOverviewTab(
                     }
                     if (g.moduleName.isNotBlank()) {
                         Text(
-                            text = "模组: ${g.moduleName}",
+                            text = "${LocalizedStrings.groupModuleName}: ${g.moduleName}",
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -89,7 +90,7 @@ fun GroupOverviewTab(
                                     modifier = Modifier.fillMaxWidth(),
                                     horizontalArrangement = Arrangement.SpaceBetween
                                 ) {
-                                    Text("开团时间", style = MaterialTheme.typography.bodySmall)
+                                    Text(LocalizedStrings.groupCreateStartTime, style = MaterialTheme.typography.bodySmall)
                                     Text(dateFormat.format(java.util.Date(time)), style = MaterialTheme.typography.bodySmall)
                                 }
                             }
@@ -98,7 +99,7 @@ fun GroupOverviewTab(
                                     modifier = Modifier.fillMaxWidth(),
                                     horizontalArrangement = Arrangement.SpaceBetween
                                 ) {
-                                    Text("预计结束", style = MaterialTheme.typography.bodySmall)
+                                    Text(LocalizedStrings.groupCreateEndTime, style = MaterialTheme.typography.bodySmall)
                                     Text(dateFormat.format(java.util.Date(time)), style = MaterialTheme.typography.bodySmall)
                                 }
                             }
@@ -107,7 +108,7 @@ fun GroupOverviewTab(
                                     modifier = Modifier.fillMaxWidth(),
                                     horizontalArrangement = Arrangement.SpaceBetween
                                 ) {
-                                    Text("默认开团时间", style = MaterialTheme.typography.bodySmall)
+                                    Text(LocalizedStrings.groupCreateTime, style = MaterialTheme.typography.bodySmall)
                                     Text(g.defaultSessionTime, style = MaterialTheme.typography.bodySmall)
                                 }
                             }
@@ -119,17 +120,17 @@ fun GroupOverviewTab(
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         if (g.status != Constants.GROUP_STATUS_ACTIVE) {
                             OutlinedButton(onClick = { onStatusChange(Constants.GROUP_STATUS_ACTIVE) }) {
-                                Text("恢复进行")
+                                Text(LocalizedStrings.groupStatusResume)
                             }
                         }
                         if (g.status == Constants.GROUP_STATUS_ACTIVE) {
                             OutlinedButton(onClick = { onStatusChange(Constants.GROUP_STATUS_PAUSED) }) {
-                                Text("暂停")
+                                Text(LocalizedStrings.groupStatusPause)
                             }
                         }
                         if (g.status != Constants.GROUP_STATUS_COMPLETED) {
                             OutlinedButton(onClick = { onStatusChange(Constants.GROUP_STATUS_COMPLETED) }) {
-                                Text("完结")
+                                Text(LocalizedStrings.groupStatusComplete)
                             }
                         }
                     }
@@ -144,25 +145,25 @@ fun GroupOverviewTab(
         ) {
             StatsCard(
                 icon = Icons.Default.Event,
-                label = "Session数",
+                label = LocalizedStrings.groupSessions,
                 value = "${uiState.sessions.size}",
                 modifier = Modifier.weight(1f)
             )
             StatsCard(
                 icon = Icons.Default.Person,
-                label = "PC数",
+                label = "PC",
                 value = "${uiState.pcs.size}",
                 modifier = Modifier.weight(1f)
             )
             StatsCard(
                 icon = Icons.Default.People,
-                label = "NPC数",
+                label = "NPC",
                 value = "${uiState.npcs.size}",
                 modifier = Modifier.weight(1f)
             )
             StatsCard(
                 icon = Icons.Default.CheckCircle,
-                label = "待办",
+                label = LocalizedStrings.groupTodos,
                 value = "${uiState.pendingTodos.size}",
                 modifier = Modifier.weight(1f)
             )
@@ -173,10 +174,10 @@ fun GroupOverviewTab(
             val lastSession = uiState.sessions.first()
             Card(modifier = Modifier.fillMaxWidth()) {
                 Column(modifier = Modifier.padding(16.dp)) {
-                    Text("上次Session", style = MaterialTheme.typography.titleSmall)
+                    Text(LocalizedStrings.groupLastSession, style = MaterialTheme.typography.titleSmall)
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
-                        text = "Session ${lastSession.sessionNumber}",
+                        text = "${LocalizedStrings.session} ${lastSession.sessionNumber}",
                         style = MaterialTheme.typography.bodyMedium
                     )
                     if (lastSession.summary.isNotBlank()) {
@@ -195,7 +196,7 @@ fun GroupOverviewTab(
         if (uiState.pendingTodos.isNotEmpty()) {
             Card(modifier = Modifier.fillMaxWidth()) {
                 Column(modifier = Modifier.padding(16.dp)) {
-                    Text("待办事项", style = MaterialTheme.typography.titleSmall)
+                    Text(LocalizedStrings.groupPendingTodos, style = MaterialTheme.typography.titleSmall)
                     Spacer(modifier = Modifier.height(4.dp))
                     uiState.pendingTodos.take(3).forEach { todo ->
                         Text(
@@ -205,7 +206,7 @@ fun GroupOverviewTab(
                     }
                     if (uiState.pendingTodos.size > 3) {
                         Text(
-                            text = "...还有${uiState.pendingTodos.size - 3}项",
+                            text = LocalizedStrings.groupMoreItems(uiState.pendingTodos.size - 3),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )

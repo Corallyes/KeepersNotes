@@ -7,6 +7,8 @@ import com.example.keepersnotes.data.local.entity.ImageEntity
 import com.example.keepersnotes.data.repository.ArchiveRepository
 import com.example.keepersnotes.data.repository.ImageRepository
 import com.example.keepersnotes.util.FileReaderUtil
+import com.example.keepersnotes.util.LocalizedStrings
+import com.example.keepersnotes.util.StructuredDocxParser
 import com.github.junrar.Archive
 import com.github.junrar.rarfile.FileHeader
 import org.apache.commons.compress.archivers.sevenz.SevenZArchiveEntry
@@ -22,7 +24,8 @@ data class ZipImportResult(
     val archives: List<ArchiveEntity>,
     val images: List<ImageEntity>,
     val collectionTitle: String,
-    val combinedContent: String
+    val combinedContent: String,
+    val structuredNodes: List<StructuredDocxParser.DocumentNode> = emptyList()
 )
 
 @Singleton
@@ -52,16 +55,22 @@ class ZipImportManager @Inject constructor(
             }
             val files = scanFiles(tempDir)
 
-            val archives = processDocuments(context, files.documents, collectionId)
+            val processed = processDocuments(context, files.documents, collectionId)
             val images = processImages(context, files.images, collectionId)
 
             // Combine all document contents into a single markdown string
-            val combinedContent = archives.joinToString("\n\n") { archive ->
+            val combinedContent = processed.archives.joinToString("\n\n") { archive ->
                 "# ${archive.title}\n\n${archive.contentMarkdown}"
             }
 
             val title = deriveCollectionTitle(files.documents, fileName)
-            return ZipImportResult(archives, images, title, combinedContent)
+            return ZipImportResult(
+                archives = processed.archives,
+                images = images,
+                collectionTitle = title,
+                combinedContent = combinedContent,
+                structuredNodes = processed.structuredNodes
+            )
         } finally {
             tempDir.deleteRecursively()
         }
@@ -89,7 +98,7 @@ class ZipImportManager @Inject constructor(
                     entry = zip.nextEntry
                 }
             }
-        } ?: throw Exception("无法打开 ZIP 文件")
+        } ?: throw Exception(LocalizedStrings.cannotOpenZip)
     }
 
     private fun extractRar(context: Context, uri: Uri, destDir: File) {
@@ -98,7 +107,7 @@ class ZipImportManager @Inject constructor(
         try {
             context.contentResolver.openInputStream(uri)?.use { input ->
                 tempRar.outputStream().use { output -> input.copyTo(output) }
-            } ?: throw Exception("无法打开 RAR 文件")
+            } ?: throw Exception(LocalizedStrings.cannotOpenRar)
 
             Archive(tempRar).use { archive ->
                 var header: FileHeader? = archive.nextFileHeader()
@@ -125,7 +134,7 @@ class ZipImportManager @Inject constructor(
         try {
             context.contentResolver.openInputStream(uri)?.use { input ->
                 temp7z.outputStream().use { output -> input.copyTo(output) }
-            } ?: throw Exception("无法打开 7Z 文件")
+            } ?: throw Exception(LocalizedStrings.cannotOpen7z)
 
             SevenZFile(temp7z).use { sevenZ ->
                 var entry: SevenZArchiveEntry? = sevenZ.nextEntry
@@ -166,30 +175,128 @@ class ZipImportManager @Inject constructor(
         return ScannedFiles(documents, images)
     }
 
+    private data class ProcessedDocuments(
+        val archives: List<ArchiveEntity>,
+        val structuredNodes: List<StructuredDocxParser.DocumentNode>
+    )
+
     private suspend fun processDocuments(
         context: Context,
         files: List<File>,
         collectionId: String
-    ): List<ArchiveEntity> {
-        return files.mapIndexed { index, file ->
-            val ext = file.extension.lowercase()
-            val markdown = when (ext) {
-                "docx" -> FileReaderUtil.readDocxToMarkdown(file)
-                "txt", "md" -> FileReaderUtil.readTextFileSmart(file)
-                else -> FileReaderUtil.readTextFileSmart(file)
-            }
+    ): ProcessedDocuments {
+        val archives = mutableListOf<ArchiveEntity>()
+        val allNodes = mutableListOf<StructuredDocxParser.DocumentNode>()
+        var nodeOrderOffset = 0
 
-            ArchiveEntity(
-                archiveId = UUID.randomUUID().toString(),
-                collectionId = collectionId,
-                title = file.nameWithoutExtension,
-                contentMarkdown = markdown,
-                originalFileName = file.name,
-                fileType = ext,
-                sortOrder = index,
-                createTime = System.currentTimeMillis()
-            )
+        files.forEachIndexed { index, file ->
+            val ext = file.extension.lowercase()
+            if (ext == "docx") {
+                // New flow: structured parsing
+                val nodes = try {
+                    FileReaderUtil.readDocxStructured(context, file)
+                } catch (e: Exception) {
+                    emptyList()
+                }
+                if (nodes.isNotEmpty()) {
+                    // Offset order so nodes from multiple files are sequential
+                    val offsetNodes = nodes.map { it.copy(order = it.order + nodeOrderOffset) }
+                    allNodes.addAll(offsetNodes)
+                    nodeOrderOffset += nodes.size
+                    // Also save markdown for ArchiveEntity compatibility
+                    val markdown = try {
+                        FileReaderUtil.readDocxToMarkdown(file)
+                    } catch (e: Exception) {
+                        nodes.joinToString("\n\n") { node ->
+                            when (node.type) {
+                                "heading" -> "#".repeat(node.level) + " " + node.content
+                                "paragraph" -> node.content
+                                "quote" -> "> " + node.content
+                                else -> node.content
+                            }
+                        }
+                    }
+                    archives.add(ArchiveEntity(
+                        archiveId = UUID.randomUUID().toString(),
+                        collectionId = collectionId,
+                        title = file.nameWithoutExtension,
+                        contentMarkdown = markdown,
+                        originalFileName = file.name,
+                        fileType = ext,
+                        sortOrder = index,
+                        createTime = System.currentTimeMillis()
+                    ))
+                }
+            } else if (ext == "txt") {
+                // New flow: structured parsing for TXT files using Python
+                val nodes = try {
+                    FileReaderUtil.readTxtStructured(context, file)
+                } catch (e: Exception) {
+                    emptyList()
+                }
+                if (nodes.isNotEmpty()) {
+                    // Convert StructuredTxtParser.DocumentNode to StructuredDocxParser.DocumentNode for compatibility
+                    val docxCompatibleNodes = nodes.map { txtNode ->
+                        StructuredDocxParser.DocumentNode(
+                            type = txtNode.type,
+                            level = txtNode.level,
+                            content = txtNode.content,
+                            order = txtNode.order + nodeOrderOffset
+                        )
+                    }
+                    allNodes.addAll(docxCompatibleNodes)
+                    nodeOrderOffset += nodes.size
+                    // Also save markdown for ArchiveEntity compatibility
+                    val markdown = nodes.joinToString("\n\n") { node ->
+                        when (node.type) {
+                            "heading" -> "#".repeat(node.level) + " " + node.content
+                            "paragraph" -> node.content
+                            "quote" -> "> " + node.content
+                            "list_item" -> "- " + node.content
+                            else -> node.content
+                        }
+                    }
+                    archives.add(ArchiveEntity(
+                        archiveId = UUID.randomUUID().toString(),
+                        collectionId = collectionId,
+                        title = file.nameWithoutExtension,
+                        contentMarkdown = markdown,
+                        originalFileName = file.name,
+                        fileType = ext,
+                        sortOrder = index,
+                        createTime = System.currentTimeMillis()
+                    ))
+                } else {
+                    // Fallback to old flow if Python parsing fails
+                    val markdown = FileReaderUtil.readTextFileSmart(file)
+                    archives.add(ArchiveEntity(
+                        archiveId = UUID.randomUUID().toString(),
+                        collectionId = collectionId,
+                        title = file.nameWithoutExtension,
+                        contentMarkdown = markdown,
+                        originalFileName = file.name,
+                        fileType = ext,
+                        sortOrder = index,
+                        createTime = System.currentTimeMillis()
+                    ))
+                }
+            } else {
+                // Old flow: MD → text
+                val markdown = FileReaderUtil.readTextFileSmart(file)
+                archives.add(ArchiveEntity(
+                    archiveId = UUID.randomUUID().toString(),
+                    collectionId = collectionId,
+                    title = file.nameWithoutExtension,
+                    contentMarkdown = markdown,
+                    originalFileName = file.name,
+                    fileType = ext,
+                    sortOrder = index,
+                    createTime = System.currentTimeMillis()
+                ))
+            }
         }
+
+        return ProcessedDocuments(archives, allNodes)
     }
 
     private suspend fun processImages(
@@ -223,7 +330,7 @@ class ZipImportManager @Inject constructor(
         if (documents.isNotEmpty()) {
             return documents.first().nameWithoutExtension
         }
-        return fileName.substringBeforeLast(".").ifBlank { "未命名卷宗" }
+        return fileName.substringBeforeLast(".").ifBlank { LocalizedStrings.unnamedArchive }
     }
 
     private fun getFileName(context: Context, uri: Uri): String {

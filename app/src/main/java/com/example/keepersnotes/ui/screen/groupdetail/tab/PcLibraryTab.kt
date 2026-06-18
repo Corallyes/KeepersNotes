@@ -12,6 +12,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.example.keepersnotes.data.local.entity.PlayerCharacterEntity
 import com.example.keepersnotes.ui.component.PcCard
+import com.example.keepersnotes.util.LocalizedStrings
 
 @Composable
 fun PcLibraryTab(
@@ -32,7 +33,7 @@ fun PcLibraryTab(
             OutlinedTextField(
                 value = searchQuery,
                 onValueChange = { searchQuery = it },
-                placeholder = { Text("搜索角色名或玩家名") },
+                placeholder = { Text(LocalizedStrings.pcSearchPlaceholder) },
                 leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
                 modifier = Modifier
                     .fillMaxWidth()
@@ -43,7 +44,7 @@ fun PcLibraryTab(
             if (filteredPcs.isEmpty()) {
                 Box(modifier = Modifier.fillMaxSize().padding(32.dp)) {
                     Text(
-                        text = if (searchQuery.isBlank()) "还没有添加PC角色" else "没有匹配的角色",
+                        text = if (searchQuery.isBlank()) LocalizedStrings.pcNoPcs else LocalizedStrings.pcNoMatch,
                         style = MaterialTheme.typography.bodyLarge,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -69,7 +70,7 @@ fun PcLibraryTab(
                 .align(androidx.compose.ui.Alignment.BottomEnd)
                 .padding(16.dp)
         ) {
-            Icon(Icons.Default.Add, contentDescription = "添加PC")
+            Icon(Icons.Default.Add, contentDescription = LocalizedStrings.pcAdd)
         }
     }
 }

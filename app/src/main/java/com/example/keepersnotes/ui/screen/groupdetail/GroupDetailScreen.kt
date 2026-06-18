@@ -40,7 +40,7 @@ fun GroupDetailScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val tabs = listOf(
         LocalizedStrings.groupOverview,
-        "人物",
+        LocalizedStrings.groupCharacters,
         LocalizedStrings.groupKpMemo,
         LocalizedStrings.groupSessionRecord
     )
@@ -63,18 +63,18 @@ fun GroupDetailScreen(
                 actions = {
                     Box {
                         IconButton(onClick = { showMenu = true }) {
-                            Icon(Icons.Default.MoreVert, contentDescription = "更多")
+                            Icon(Icons.Default.MoreVert, contentDescription = null)
                         }
                         DropdownMenu(
                             expanded = showMenu,
                             onDismissRequest = { showMenu = false }
                         ) {
                             DropdownMenuItem(
-                                text = { Text("编辑") },
+                                text = { Text(LocalizedStrings.edit) },
                                 onClick = { showMenu = false; showEditSheet = true }
                             )
                             DropdownMenuItem(
-                                text = { Text("删除", color = MaterialTheme.colorScheme.error) },
+                                text = { Text(LocalizedStrings.delete, color = MaterialTheme.colorScheme.error) },
                                 onClick = { showMenu = false; showDeleteDialog = true }
                             )
                         }
@@ -106,7 +106,7 @@ fun GroupDetailScreen(
                     val subTabs = listOf(
                         LocalizedStrings.groupPcLibrary,
                         LocalizedStrings.groupNpcArchive,
-                        "人物关系"
+                        LocalizedStrings.groupRelationships
                     )
                     Column {
                         TabRow(selectedTabIndex = characterSubTab) {
@@ -170,19 +170,19 @@ fun GroupDetailScreen(
     if (showDeleteDialog) {
         AlertDialog(
             onDismissRequest = { showDeleteDialog = false },
-            title = { Text("删除团") },
-            text = { Text("确定要删除这个团吗？团内所有PC、NPC、Session记录等数据都会被删除，此操作不可撤销。") },
+            title = { Text(LocalizedStrings.groupDeleteTitle) },
+            text = { Text(LocalizedStrings.groupDeleteConfirmAll) },
             confirmButton = {
                 TextButton(onClick = {
                     viewModel.deleteGroup()
                     showDeleteDialog = false
                     onBack()
                 }) {
-                    Text("删除", color = MaterialTheme.colorScheme.error)
+                    Text(LocalizedStrings.delete, color = MaterialTheme.colorScheme.error)
                 }
             },
             dismissButton = {
-                TextButton(onClick = { showDeleteDialog = false }) { Text("取消") }
+                TextButton(onClick = { showDeleteDialog = false }) { Text(LocalizedStrings.cancel) }
             }
         )
     }
@@ -258,12 +258,12 @@ private fun EditGroupSheet(
             verticalArrangement = Arrangement.spacedBy(12.dp),
             contentPadding = PaddingValues(bottom = 32.dp)
         ) {
-            item { Text("编辑团", style = MaterialTheme.typography.titleLarge) }
+            item { Text(LocalizedStrings.groupEditTitle, style = MaterialTheme.typography.titleLarge) }
             item {
                 OutlinedTextField(
                     value = groupName,
                     onValueChange = { groupName = it },
-                    label = { Text("团名称") },
+                    label = { Text(LocalizedStrings.groupCreateName) },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true
                 )
@@ -272,13 +272,13 @@ private fun EditGroupSheet(
                 OutlinedTextField(
                     value = moduleName,
                     onValueChange = { moduleName = it },
-                    label = { Text("模组名称") },
+                    label = { Text(LocalizedStrings.groupCreateModuleName) },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true
                 )
             }
             item {
-                Text("游戏系统", style = MaterialTheme.typography.labelMedium)
+                Text(LocalizedStrings.groupCreateSystem, style = MaterialTheme.typography.labelMedium)
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     listOf(Constants.SYSTEM_COC7, Constants.SYSTEM_DND5E).forEach { s ->
                         FilterChip(
@@ -293,7 +293,7 @@ private fun EditGroupSheet(
                 OutlinedTextField(
                     value = gameFormat,
                     onValueChange = { gameFormat = it },
-                    label = { Text("开团方式") },
+                    label = { Text(LocalizedStrings.groupCreateFormat) },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true
                 )
@@ -302,7 +302,7 @@ private fun EditGroupSheet(
                 OutlinedTextField(
                     value = scale,
                     onValueChange = { scale = it },
-                    label = { Text("规模") },
+                    label = { Text(LocalizedStrings.groupCreateScale) },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true
                 )
@@ -316,8 +316,8 @@ private fun EditGroupSheet(
                     OutlinedTextField(
                         value = startTime?.let { dateFormat.format(java.util.Date(it)) } ?: "",
                         onValueChange = {},
-                        label = { Text("开团时间") },
-                        placeholder = { Text("点击选择") },
+                        label = { Text(LocalizedStrings.groupCreateStartTime) },
+                        placeholder = { Text(LocalizedStrings.groupCreateClickSelect) },
                         readOnly = true,
                         interactionSource = startInteractionSource,
                         modifier = Modifier.weight(1f)
@@ -325,8 +325,8 @@ private fun EditGroupSheet(
                     OutlinedTextField(
                         value = expectedEndTime?.let { dateFormat.format(java.util.Date(it)) } ?: "",
                         onValueChange = {},
-                        label = { Text("预计结束") },
-                        placeholder = { Text("点击选择") },
+                        label = { Text(LocalizedStrings.groupCreateEndTime) },
+                        placeholder = { Text(LocalizedStrings.groupCreateClickSelect) },
                         readOnly = true,
                         interactionSource = endInteractionSource,
                         modifier = Modifier.weight(1f)
@@ -338,20 +338,20 @@ private fun EditGroupSheet(
                 OutlinedTextField(
                     value = defaultSessionTime,
                     onValueChange = {},
-                    label = { Text("默认开团时间") },
-                    placeholder = { Text("点击选择时间") },
+                    label = { Text(LocalizedStrings.groupCreateTime) },
+                    placeholder = { Text(LocalizedStrings.groupCreateTimePlaceholder) },
                     readOnly = true,
                     interactionSource = timeInteractionSource,
                     modifier = Modifier.fillMaxWidth()
                 )
             }
             item {
-                Text("状态", style = MaterialTheme.typography.labelMedium)
+                Text(LocalizedStrings.groupStatus, style = MaterialTheme.typography.labelMedium)
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     listOf(
-                        Constants.GROUP_STATUS_ACTIVE to "进行中",
-                        Constants.GROUP_STATUS_PAUSED to "暂停",
-                        Constants.GROUP_STATUS_COMPLETED to "已完结"
+                        Constants.GROUP_STATUS_ACTIVE to LocalizedStrings.groupStatusActive,
+                        Constants.GROUP_STATUS_PAUSED to LocalizedStrings.groupStatusPaused,
+                        Constants.GROUP_STATUS_COMPLETED to LocalizedStrings.groupStatusCompleted
                     ).forEach { (value, label) ->
                         FilterChip(
                             selected = status == value,
@@ -365,7 +365,7 @@ private fun EditGroupSheet(
                 OutlinedTextField(
                     value = notes,
                     onValueChange = { notes = it },
-                    label = { Text("备注") },
+                    label = { Text(LocalizedStrings.groupRemarks) },
                     modifier = Modifier.fillMaxWidth(),
                     minLines = 3
                 )
@@ -393,7 +393,7 @@ private fun EditGroupSheet(
                         }
                     },
                     modifier = Modifier.fillMaxWidth()
-                ) { Text("保存") }
+                ) { Text(LocalizedStrings.save) }
             }
         }
     }
@@ -407,10 +407,10 @@ private fun EditGroupSheet(
                 TextButton(onClick = {
                     startTime = datePickerState.selectedDateMillis
                     showStartDatePicker = false
-                }) { Text("确定") }
+                }) { Text(LocalizedStrings.confirm) }
             },
             dismissButton = {
-                TextButton(onClick = { showStartDatePicker = false }) { Text("取消") }
+                TextButton(onClick = { showStartDatePicker = false }) { Text(LocalizedStrings.cancel) }
             }
         ) { DatePicker(state = datePickerState) }
     }
@@ -422,17 +422,17 @@ private fun EditGroupSheet(
                 TextButton(onClick = {
                     expectedEndTime = datePickerState.selectedDateMillis
                     showEndDatePicker = false
-                }) { Text("确定") }
+                }) { Text(LocalizedStrings.confirm) }
             },
             dismissButton = {
-                TextButton(onClick = { showEndDatePicker = false }) { Text("取消") }
+                TextButton(onClick = { showEndDatePicker = false }) { Text(LocalizedStrings.cancel) }
             }
         ) { DatePicker(state = datePickerState) }
     }
     if (showTimePicker) {
         AlertDialog(
             onDismissRequest = { showTimePicker = false },
-            title = { Text("选择默认开团时间") },
+            title = { Text(LocalizedStrings.groupSelectTime) },
             text = { TimePicker(state = timePickerState) },
             confirmButton = {
                 TextButton(onClick = {
@@ -440,10 +440,10 @@ private fun EditGroupSheet(
                     val m = timePickerState.minute.toString().padStart(2, '0')
                     defaultSessionTime = "$h:$m"
                     showTimePicker = false
-                }) { Text("确定") }
+                }) { Text(LocalizedStrings.confirm) }
             },
             dismissButton = {
-                TextButton(onClick = { showTimePicker = false }) { Text("取消") }
+                TextButton(onClick = { showTimePicker = false }) { Text(LocalizedStrings.cancel) }
             }
         )
     }
@@ -452,20 +452,20 @@ private fun EditGroupSheet(
     if (showTimeChangeConfirm) {
         AlertDialog(
             onDismissRequest = { showTimeChangeConfirm = false },
-            title = { Text("日程将被覆盖") },
-            text = { Text("修改了开团时间、预计结束或默认开团时间，该团在日历上的日程将被重置为当前设置。") },
+            title = { Text(LocalizedStrings.groupScheduleOverwrite) },
+            text = { Text(LocalizedStrings.groupScheduleOverwriteDesc) },
             confirmButton = {
                 TextButton(onClick = {
                     pendingSaveGroup?.let { onSave(it) }
                     showTimeChangeConfirm = false
                     pendingSaveGroup = null
-                }) { Text("确定") }
+                }) { Text(LocalizedStrings.confirm) }
             },
             dismissButton = {
                 TextButton(onClick = {
                     showTimeChangeConfirm = false
                     pendingSaveGroup = null
-                }) { Text("取消") }
+                }) { Text(LocalizedStrings.cancel) }
             }
         )
     }

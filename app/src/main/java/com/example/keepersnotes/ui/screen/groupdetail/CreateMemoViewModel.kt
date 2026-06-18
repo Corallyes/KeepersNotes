@@ -12,8 +12,9 @@ import com.example.keepersnotes.data.repository.KpMemoRepository
 import com.example.keepersnotes.data.repository.ModuleRepository
 import com.example.keepersnotes.util.Chapter
 import com.example.keepersnotes.util.Constants
+import com.example.keepersnotes.util.LocalizedStrings
 import com.example.keepersnotes.util.ModuleContentParser
-import com.example.keepersnotes.util.NotificationHelper
+import com.example.keepersnotes.notification.NotificationHelper
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
@@ -23,7 +24,6 @@ data class CreateMemoUiState(
     val title: String = "",
     val content: String = "",
     val type: String = Constants.MEMO_TYPE_TODO,
-    val isHidden: Boolean = false,
     val priority: Int = 0,
     val titleError: String? = null,
     val isSubmitting: Boolean = false,
@@ -80,10 +80,6 @@ class CreateMemoViewModel @Inject constructor(
         _uiState.update { it.copy(type = type) }
     }
 
-    fun updateIsHidden(isHidden: Boolean) {
-        _uiState.update { it.copy(isHidden = isHidden) }
-    }
-
     fun updatePriority(priority: Int) {
         _uiState.update { it.copy(priority = priority) }
     }
@@ -131,7 +127,7 @@ class CreateMemoViewModel @Inject constructor(
     fun submit(context: Context? = null) {
         val state = _uiState.value
         if (state.title.isBlank() && state.content.isBlank()) {
-            _uiState.update { it.copy(titleError = "请输入标题或内容") }
+            _uiState.update { it.copy(titleError = LocalizedStrings.memoTitleOrContentRequired) }
             return
         }
         _uiState.update { it.copy(isSubmitting = true) }
@@ -146,7 +142,7 @@ class CreateMemoViewModel @Inject constructor(
                 type = state.type,
                 title = state.title.trim(),
                 content = state.content.trim(),
-                isHidden = state.type == Constants.MEMO_TYPE_HIDDEN || state.isHidden
+                isHidden = false
             )
             // Update priority, module/chapter association, and notification
             kpMemoRepository.getMemoById(memoId).firstOrNull()?.let { memo ->
@@ -154,7 +150,6 @@ class CreateMemoViewModel @Inject constructor(
                 kpMemoRepository.updateMemo(
                     memo.copy(
                         priority = state.priority,
-                        moduleId = state.selectedModuleId,
                         chapterId = state.selectedChapterId,
                         chapterTitle = state.selectedChapterTitle,
                         isNotificationEnabled = state.type == Constants.MEMO_TYPE_REMINDER && state.isNotificationEnabled,
@@ -165,10 +160,10 @@ class CreateMemoViewModel @Inject constructor(
                 // 调度通知 & 创建日历日程
                 if (state.type == Constants.MEMO_TYPE_REMINDER && state.isNotificationEnabled && notificationTime != null) {
                     if (context != null && notificationTime > System.currentTimeMillis()) {
-                        NotificationHelper.scheduleNotification(
+                        NotificationHelper.scheduleMemoNotification(
                             context = context,
                             notificationId = notificationId.toLong(),
-                            title = state.title.trim().ifBlank { "备忘录提醒" },
+                            title = state.title.trim().ifBlank { LocalizedStrings.memoReminderTitle },
                             content = state.content.trim().take(100),
                             triggerTime = notificationTime
                         )
@@ -182,7 +177,7 @@ class CreateMemoViewModel @Inject constructor(
                     val timeStr = "${cal.get(java.util.Calendar.HOUR_OF_DAY).toString().padStart(2, '0')}:${cal.get(java.util.Calendar.MINUTE).toString().padStart(2, '0')}"
                     calendarEventRepository.create(
                         groupId = groupId,
-                        title = "⏰ ${state.title.trim().ifBlank { "备忘录提醒" }}",
+                        title = "⏰ ${state.title.trim().ifBlank { LocalizedStrings.memoReminderTitle }}",
                         date = dateOnly,
                         time = timeStr,
                         type = "memo_reminder"

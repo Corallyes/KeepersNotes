@@ -21,6 +21,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.keepersnotes.ui.component.CompactTopBar
 import com.example.keepersnotes.util.Constants
+import com.example.keepersnotes.util.LocalizedStrings
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -41,10 +42,10 @@ fun CreateGroupScreen(
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
         topBar = {
             CompactTopBar(
-                title = "新建团",
+                title = LocalizedStrings.groupCreateTitle,
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "返回")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = LocalizedStrings.back)
                     }
                 }
             )
@@ -61,7 +62,7 @@ fun CreateGroupScreen(
             OutlinedTextField(
                 value = uiState.groupName,
                 onValueChange = viewModel::updateGroupName,
-                label = { Text("团名称") },
+                label = { Text(LocalizedStrings.groupCreateName) },
                 isError = uiState.groupNameError != null,
                 supportingText = uiState.groupNameError?.let { { Text(it) } },
                 modifier = Modifier.fillMaxWidth(),
@@ -72,18 +73,18 @@ fun CreateGroupScreen(
             OutlinedTextField(
                 value = uiState.moduleName,
                 onValueChange = viewModel::updateModuleName,
-                label = { Text("模组名称") },
+                label = { Text(LocalizedStrings.groupCreateModuleName) },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
                 trailingIcon = {
                     TextButton(onClick = { showModuleSelector = true }) {
-                        Text("从库中选取")
+                        Text(LocalizedStrings.moduleSelectFromLibrary)
                     }
                 }
             )
 
             // System selector
-            Text("游戏系统", style = MaterialTheme.typography.labelMedium)
+            Text(LocalizedStrings.groupCreateSystem, style = MaterialTheme.typography.labelMedium)
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 listOf(Constants.SYSTEM_COC7, Constants.SYSTEM_DND5E).forEach { s ->
                     FilterChip(
@@ -98,8 +99,8 @@ fun CreateGroupScreen(
             OutlinedTextField(
                 value = uiState.gameFormat,
                 onValueChange = viewModel::updateGameFormat,
-                label = { Text("开团方式") },
-                placeholder = { Text("如 线上、线下、线上线下") },
+                label = { Text(LocalizedStrings.groupCreateFormat) },
+                placeholder = { Text(LocalizedStrings.groupCreateFormatPlaceholder) },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true
             )
@@ -108,8 +109,8 @@ fun CreateGroupScreen(
             OutlinedTextField(
                 value = uiState.scale,
                 onValueChange = viewModel::updateScale,
-                label = { Text("规模") },
-                placeholder = { Text("如 3-5人") },
+                label = { Text(LocalizedStrings.groupCreateScale) },
+                placeholder = { Text(LocalizedStrings.groupCreateScalePlaceholder) },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true
             )
@@ -140,8 +141,8 @@ fun CreateGroupScreen(
                 OutlinedTextField(
                     value = uiState.startTime?.let { dateFormat.format(java.util.Date(it)) } ?: "",
                     onValueChange = {},
-                    label = { Text("开团时间") },
-                    placeholder = { Text("点击选择") },
+                    label = { Text(LocalizedStrings.groupCreateStartTime) },
+                    placeholder = { Text(LocalizedStrings.groupCreateClickSelect) },
                     readOnly = true,
                     interactionSource = startInteractionSource,
                     modifier = Modifier.weight(1f)
@@ -149,8 +150,8 @@ fun CreateGroupScreen(
                 OutlinedTextField(
                     value = uiState.expectedEndTime?.let { dateFormat.format(java.util.Date(it)) } ?: "",
                     onValueChange = {},
-                    label = { Text("预计结束") },
-                    placeholder = { Text("点击选择") },
+                    label = { Text(LocalizedStrings.groupCreateEndTime) },
+                    placeholder = { Text(LocalizedStrings.groupCreateClickSelect) },
                     readOnly = true,
                     interactionSource = endInteractionSource,
                     modifier = Modifier.weight(1f)
@@ -164,10 +165,10 @@ fun CreateGroupScreen(
                             TextButton(onClick = {
                                 viewModel.updateStartTime(datePickerState.selectedDateMillis)
                                 showStartDatePicker = false
-                            }) { Text("确定") }
+                            }) { Text(LocalizedStrings.confirm) }
                         },
                         dismissButton = {
-                            TextButton(onClick = { showStartDatePicker = false }) { Text("取消") }
+                            TextButton(onClick = { showStartDatePicker = false }) { Text(LocalizedStrings.cancel) }
                         }
                     ) {
                         DatePicker(state = datePickerState)
@@ -181,10 +182,10 @@ fun CreateGroupScreen(
                             TextButton(onClick = {
                                 viewModel.updateExpectedEndTime(datePickerState.selectedDateMillis)
                                 showEndDatePicker = false
-                            }) { Text("确定") }
+                            }) { Text(LocalizedStrings.confirm) }
                         },
                         dismissButton = {
-                            TextButton(onClick = { showEndDatePicker = false }) { Text("取消") }
+                            TextButton(onClick = { showEndDatePicker = false }) { Text(LocalizedStrings.cancel) }
                         }
                     ) {
                         DatePicker(state = datePickerState)
@@ -213,8 +214,8 @@ fun CreateGroupScreen(
             OutlinedTextField(
                 value = uiState.defaultSessionTime,
                 onValueChange = {},
-                label = { Text("默认开团时间") },
-                placeholder = { Text("点击选择时间") },
+                label = { Text(LocalizedStrings.groupCreateTime) },
+                placeholder = { Text(LocalizedStrings.groupCreateTimePlaceholder) },
                 readOnly = true,
                 interactionSource = timeInteractionSource,
                 modifier = Modifier.fillMaxWidth()
@@ -223,7 +224,7 @@ fun CreateGroupScreen(
             if (showTimePicker) {
                 AlertDialog(
                     onDismissRequest = { showTimePicker = false },
-                    title = { Text("选择默认开团时间") },
+                    title = { Text(LocalizedStrings.groupCreateTimeTitle) },
                     text = { TimePicker(state = timePickerState) },
                     confirmButton = {
                         TextButton(onClick = {
@@ -231,10 +232,10 @@ fun CreateGroupScreen(
                             val m = timePickerState.minute.toString().padStart(2, '0')
                             viewModel.updateDefaultSessionTime("$h:$m")
                             showTimePicker = false
-                        }) { Text("确定") }
+                        }) { Text(LocalizedStrings.confirm) }
                     },
                     dismissButton = {
-                        TextButton(onClick = { showTimePicker = false }) { Text("取消") }
+                        TextButton(onClick = { showTimePicker = false }) { Text(LocalizedStrings.cancel) }
                     }
                 )
             }
@@ -249,7 +250,7 @@ fun CreateGroupScreen(
                 if (uiState.isSubmitting) {
                     CircularProgressIndicator(modifier = Modifier.size(20.dp))
                 } else {
-                    Text("创建")
+                    Text(LocalizedStrings.groupCreateSubmit)
                 }
             }
         }
@@ -272,21 +273,21 @@ fun CreateGroupScreen(
     if (confirmModule != null) {
         AlertDialog(
             onDismissRequest = { pendingModule = null },
-            title = { Text("确认选择模组") },
+            title = { Text(LocalizedStrings.moduleConfirmSelect) },
             text = {
-                Text("确定要选择「${confirmModule.title}」作为本团模组吗？\n\n模组一旦确定，后续对模组的修改不会影响到此团。本团将继承当前模组的默认PC、NPC和人物关系网。")
+                Text(LocalizedStrings.moduleConfirmSelectDesc(confirmModule.title))
             },
             confirmButton = {
                 TextButton(onClick = {
                     viewModel.selectModule(confirmModule)
                     pendingModule = null
                 }) {
-                    Text("确定")
+                    Text(LocalizedStrings.confirm)
                 }
             },
             dismissButton = {
                 TextButton(onClick = { pendingModule = null }) {
-                    Text("取消")
+                    Text(LocalizedStrings.cancel)
                 }
             }
         )
@@ -308,13 +309,13 @@ private fun ModuleSelectorDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("选择模组") },
+        title = { Text(LocalizedStrings.moduleSelectTitle) },
         text = {
             Column {
                 OutlinedTextField(
                     value = searchQuery,
                     onValueChange = { searchQuery = it },
-                    placeholder = { Text("搜索模组名称") },
+                    placeholder = { Text(LocalizedStrings.moduleSearchName) },
                     leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true
@@ -322,7 +323,7 @@ private fun ModuleSelectorDialog(
                 Spacer(modifier = Modifier.height(8.dp))
                 if (filtered.isEmpty()) {
                     Text(
-                        "暂无模组，请先导入",
+                        LocalizedStrings.moduleNoModulesImport,
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(16.dp)
@@ -350,7 +351,7 @@ private fun ModuleSelectorDialog(
             }
         },
         confirmButton = {
-            TextButton(onClick = onDismiss) { Text("取消") }
+            TextButton(onClick = onDismiss) { Text(LocalizedStrings.cancel) }
         }
     )
 }

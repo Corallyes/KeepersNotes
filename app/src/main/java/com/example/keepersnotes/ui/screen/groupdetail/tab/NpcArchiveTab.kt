@@ -12,6 +12,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.example.keepersnotes.data.local.entity.NpcEntity
 import com.example.keepersnotes.ui.component.NpcCard
+import com.example.keepersnotes.util.LocalizedStrings
 
 @Composable
 fun NpcArchiveTab(
@@ -32,7 +33,7 @@ fun NpcArchiveTab(
             OutlinedTextField(
                 value = searchQuery,
                 onValueChange = { searchQuery = it },
-                placeholder = { Text("搜索NPC名称或别名") },
+                placeholder = { Text(LocalizedStrings.npcSearchPlaceholder) },
                 leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
                 modifier = Modifier
                     .fillMaxWidth()
@@ -43,7 +44,7 @@ fun NpcArchiveTab(
             if (filteredNpcs.isEmpty()) {
                 Box(modifier = Modifier.fillMaxSize().padding(32.dp)) {
                     Text(
-                        text = if (searchQuery.isBlank()) "还没有添加NPC" else "没有匹配的NPC",
+                        text = if (searchQuery.isBlank()) LocalizedStrings.npcNoNpcs else LocalizedStrings.npcNoMatch,
                         style = MaterialTheme.typography.bodyLarge,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -69,7 +70,7 @@ fun NpcArchiveTab(
                 .align(androidx.compose.ui.Alignment.BottomEnd)
                 .padding(16.dp)
         ) {
-            Icon(Icons.Default.Add, contentDescription = "添加NPC")
+            Icon(Icons.Default.Add, contentDescription = LocalizedStrings.npcAdd)
         }
     }
 }

@@ -11,6 +11,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.keepersnotes.ui.component.CompactTopBar
+import com.example.keepersnotes.util.LocalizedStrings
 
 data class LicenseEntry(
     val name: String,
@@ -40,10 +41,10 @@ fun OpenSourceLicenseScreen(
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
         topBar = {
             CompactTopBar(
-                title = "开源许可",
+                title = LocalizedStrings.licenseTitle,
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "返回")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = LocalizedStrings.back)
                     }
                 }
             )
@@ -66,7 +67,7 @@ fun OpenSourceLicenseScreen(
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
                     Text(
-                        text = "守密人笔记",
+                        text = LocalizedStrings.licenseAppName,
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onPrimaryContainer
@@ -79,31 +80,31 @@ fun OpenSourceLicenseScreen(
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
-                        text = "知识共享 署名-非商业性使用-相同方式共享 4.0 国际许可协议",
+                        text = LocalizedStrings.licenseCcByNcSa,
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onPrimaryContainer
                     )
                     Spacer(modifier = Modifier.height(12.dp))
                     Text(
-                        text = "您可以自由地：",
+                        text = LocalizedStrings.licenseYouCan,
                         style = MaterialTheme.typography.bodySmall,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onPrimaryContainer
                     )
                     Text(
-                        text = "共享 — 在任何媒介以任何形式复制、发行本作品\n演绎 — 修改、转换或以本作品为基础进行创作",
+                        text = LocalizedStrings.licenseShare,
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onPrimaryContainer
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
-                        text = "惟须遵守下列条件：",
+                        text = LocalizedStrings.licenseConditions,
                         style = MaterialTheme.typography.bodySmall,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onPrimaryContainer
                     )
                     Text(
-                        text = "署名 — 您必须给出适当的署名\n非商业性使用 — 您不得将本作品用于商业目的\n相同方式共享 — 修改后的作品必须以相同许可证发布",
+                        text = LocalizedStrings.licenseAttribution,
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onPrimaryContainer
                     )
@@ -114,7 +115,7 @@ fun OpenSourceLicenseScreen(
 
             // Third-party libraries
             Text(
-                text = "第三方开源库",
+                text = LocalizedStrings.licenseThirdParty,
                 style = MaterialTheme.typography.titleSmall,
                 fontWeight = FontWeight.Bold,
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)

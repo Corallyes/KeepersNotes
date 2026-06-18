@@ -14,13 +14,14 @@ import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
+import com.example.keepersnotes.util.LocalizedStrings
 
 @Composable
 fun RichTextEditor(
     value: String,
     onValueChange: (String) -> Unit,
     modifier: Modifier = Modifier,
-    placeholder: String = "输入内容...",
+    placeholder: String = LocalizedStrings.editorPlaceholder,
     showPreview: Boolean = false
 ) {
     var textFieldValue by remember(value) {
@@ -43,7 +44,7 @@ fun RichTextEditor(
                 // 标题
                 FormatButton(
                     icon = Icons.Default.Title,
-                    tooltip = "标题",
+                    tooltip = LocalizedStrings.editorHeading,
                     onClick = {
                         val newText = insertMarkdown(textFieldValue, "# ", "")
                         textFieldValue = newText
@@ -54,7 +55,7 @@ fun RichTextEditor(
                 // 加粗
                 FormatButton(
                     icon = Icons.Default.FormatBold,
-                    tooltip = "加粗",
+                    tooltip = LocalizedStrings.editorBold,
                     onClick = {
                         val newText = insertMarkdown(textFieldValue, "**", "**")
                         textFieldValue = newText
@@ -65,7 +66,7 @@ fun RichTextEditor(
                 // 斜体
                 FormatButton(
                     icon = Icons.Default.FormatItalic,
-                    tooltip = "斜体",
+                    tooltip = LocalizedStrings.editorItalic,
                     onClick = {
                         val newText = insertMarkdown(textFieldValue, "*", "*")
                         textFieldValue = newText
@@ -76,7 +77,7 @@ fun RichTextEditor(
                 // 删除线
                 FormatButton(
                     icon = Icons.Default.FormatStrikethrough,
-                    tooltip = "删除线",
+                    tooltip = LocalizedStrings.editorStrikethrough,
                     onClick = {
                         val newText = insertMarkdown(textFieldValue, "~~", "~~")
                         textFieldValue = newText
@@ -87,7 +88,7 @@ fun RichTextEditor(
                 // 无序列表
                 FormatButton(
                     icon = Icons.Default.FormatListBulleted,
-                    tooltip = "无序列表",
+                    tooltip = LocalizedStrings.editorBulletList,
                     onClick = {
                         val newText = insertAtLineStart(textFieldValue, "- ")
                         textFieldValue = newText
@@ -98,7 +99,7 @@ fun RichTextEditor(
                 // 有序列表
                 FormatButton(
                     icon = Icons.Default.FormatListNumbered,
-                    tooltip = "有序列表",
+                    tooltip = LocalizedStrings.editorOrderedList,
                     onClick = {
                         val newText = insertAtLineStart(textFieldValue, "1. ")
                         textFieldValue = newText
@@ -109,7 +110,7 @@ fun RichTextEditor(
                 // 引用
                 FormatButton(
                     icon = Icons.Default.FormatQuote,
-                    tooltip = "引用",
+                    tooltip = LocalizedStrings.editorQuote,
                     onClick = {
                         val newText = insertAtLineStart(textFieldValue, "> ")
                         textFieldValue = newText
@@ -120,7 +121,7 @@ fun RichTextEditor(
                 // 代码
                 FormatButton(
                     icon = Icons.Default.Code,
-                    tooltip = "代码",
+                    tooltip = LocalizedStrings.editorCode,
                     onClick = {
                         val selection = textFieldValue.selection
                         if (selection.collapsed) {
@@ -142,7 +143,7 @@ fun RichTextEditor(
                 ) {
                     Icon(
                         if (isPreviewMode) Icons.Default.Edit else Icons.Default.Visibility,
-                        contentDescription = if (isPreviewMode) "编辑" else "预览",
+                        contentDescription = if (isPreviewMode) LocalizedStrings.editorEdit else LocalizedStrings.editorPreview,
                         modifier = Modifier.size(18.dp)
                     )
                 }

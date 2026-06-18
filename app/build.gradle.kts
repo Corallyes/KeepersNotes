@@ -4,6 +4,7 @@ plugins {
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.ksp)
     alias(libs.plugins.hilt.android)
+    id("com.chaquo.python")
 }
 
 android {
@@ -14,10 +15,14 @@ android {
         applicationId = "com.example.keepersnotes"
         minSdk = 26
         targetSdk = 36
-        versionCode = 2
-        versionName = "1.1-beta"
+        versionCode = 3
+        versionName = "1.1-beta2"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
+        ndk {
+            abiFilters += listOf("arm64-v8a", "x86_64")
+        }
     }
 
     buildTypes {
@@ -33,11 +38,21 @@ android {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
-    kotlinOptions {
-        jvmTarget = "17"
+    kotlin {
+        jvmToolchain(17)
     }
     buildFeatures {
         compose = true
+    }
+}
+
+chaquopy {
+    defaultConfig {
+        version = "3.12"
+        pip {
+            install("python-docx")
+            install("chardet")
+        }
     }
 }
 

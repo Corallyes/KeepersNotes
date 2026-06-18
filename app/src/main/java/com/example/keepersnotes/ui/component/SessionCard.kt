@@ -9,6 +9,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.example.keepersnotes.data.local.entity.SessionEntity
+import com.example.keepersnotes.util.LocalizedStrings
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -46,7 +47,7 @@ fun SessionCard(
             // Participants
             if (pcNames.isNotEmpty()) {
                 Text(
-                    text = "参与: ${pcNames.joinToString("、")}",
+                    text = "${LocalizedStrings.sessionParticipants}: ${pcNames.joinToString(", ")}",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,
@@ -57,7 +58,7 @@ fun SessionCard(
             // Duration
             if (session.durationMinutes > 0) {
                 Text(
-                    text = "时长: ${session.durationMinutes / 60}h${session.durationMinutes % 60}min",
+                    text = "${LocalizedStrings.sessionDuration}: ${session.durationMinutes / 60}h${session.durationMinutes % 60}min",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )

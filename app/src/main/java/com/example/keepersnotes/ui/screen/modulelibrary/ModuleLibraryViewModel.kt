@@ -5,10 +5,14 @@ import android.net.Uri
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.keepersnotes.data.importer.ZipImportManager
+import com.example.keepersnotes.data.local.entity.DocumentNodeEntity
 import com.example.keepersnotes.data.local.entity.ModuleEntity
+import com.example.keepersnotes.data.repository.DocumentNodeRepository
 import com.example.keepersnotes.data.repository.ModuleRepository
 import com.example.keepersnotes.util.FileReaderUtil
+import com.example.keepersnotes.util.LocalizedStrings
 import com.example.keepersnotes.util.ModuleContentParser
+import com.example.keepersnotes.util.StructuredDocxParser
 import com.example.keepersnotes.util.ThemePreferences
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
@@ -65,6 +69,7 @@ data class ModuleLibraryUiState(
 class ModuleLibraryViewModel @Inject constructor(
     application: Application,
     private val moduleRepository: ModuleRepository,
+    private val documentNodeRepository: DocumentNodeRepository,
     private val zipImportManager: ZipImportManager
 ) : AndroidViewModel(application) {
 
@@ -133,35 +138,185 @@ class ModuleLibraryViewModel @Inject constructor(
             _isImporting.value = true
             try {
                 val context = getApplication<Application>()
+                val cleanTitle = title.replace(Regex("[\\x00-\\x08\\x0B\\x0C\\x0E-\\x1F\\x7F\\uFFFD]"), "").trim()
+                val fileName = getFileName(context, uri)
+                val mimeType = context.contentResolver.getType(uri) ?: ""
+                val isDocx = fileName.endsWith(".docx") || mimeType.contains("wordprocessingml")
+                val isTxt = fileName.endsWith(".txt") || mimeType == "text/plain"
+                android.util.Log.d("ModuleImport", "fileName=$fileName, mimeType=$mimeType, isDocx=$isDocx, isTxt=$isTxt, uri=$uri")
+
                 val result = withContext(Dispatchers.IO) {
-                    val readResult = FileReaderUtil.readFileContent(context, uri)
-                    readResult.fold(
-                        onSuccess = { rawContent ->
-                            val cleanTitle = title.replace(Regex("[\\x00-\\x08\\x0B\\x0C\\x0E-\\x1F\\x7F\\uFFFD]"), "").trim()
-                            android.util.Log.d("ModuleImport", "title=$cleanTitle, rawContent=${rawContent.length} chars, first100=${rawContent.take(100)}")
-                            val chapters = ModuleContentParser.parseTextToChapters(rawContent)
-                            android.util.Log.d("ModuleImport", "chapters=${chapters.size}, firstTitle=${chapters.firstOrNull()?.title}")
-                            val contentJson = ModuleContentParser.chaptersToJson(chapters)
-                            val moduleId = moduleRepository.importModule(
-                                title = cleanTitle,
-                                author = author,
-                                system = system,
-                                content = contentJson
+                    if (isDocx) {
+                        // New flow: structured parsing → document_nodes table
+                        android.util.Log.d("ModuleImport", "Using structured docx parser")
+                        val nodesResult = FileReaderUtil.readDocxStructured(context, uri)
+                        nodesResult.fold(
+                            onSuccess = { nodes ->
+                                android.util.Log.d("ModuleImport", "Parsed ${nodes.size} nodes")
+                                val moduleId = moduleRepository.importModule(
+                                    title = cleanTitle,
+                                    author = author,
+                                    system = system,
+                                    content = "{}" // contentJson not used for docx
+                                )
+                                // Save structured nodes
+                                val entities = nodes.map { node ->
+                                    DocumentNodeEntity(
+                                        nodeId = "${moduleId}_${node.order}",
+                                        moduleId = moduleId,
+                                        type = node.type,
+                                        level = node.level,
+                                        content = node.content,
+                                        tableData = node.tableData?.let { tableToJson(it) },
+                                        imageUri = node.imageUri,
+                                        order = node.order
+                                    )
+                                }
+                                android.util.Log.d("ModuleImport", "Inserting ${entities.size} nodes for moduleId=$moduleId")
+                                try {
+                                    documentNodeRepository.insertNodes(entities)
+                                    val count = documentNodeRepository.getNodeCount(moduleId)
+                                    android.util.Log.d("ModuleImport", "Insert done, nodeCount=$count")
+                                } catch (e: Exception) {
+                                    android.util.Log.e("ModuleImport", "Insert failed: ${e.message}", e)
+                                }
+                                ImportResult.Success(title)
+                            },
+                            onFailure = { error ->
+                                android.util.Log.e("ModuleImport", "DOCX parse failed: ${error.message}", error)
+                                ImportResult.Error(error.message ?: LocalizedStrings.docxParseFailed)
+                            }
+                        )
+                    } else if (isTxt) {
+                        // New flow: structured parsing for TXT files using Python
+                        android.util.Log.d("ModuleImport", "Using structured txt parser")
+                        try {
+                            val nodes = FileReaderUtil.readTxtStructured(context, uri)
+                            if (nodes.isSuccess) {
+                                val txtNodes = nodes.getOrNull() ?: emptyList()
+                                android.util.Log.d("ModuleImport", "Parsed ${txtNodes.size} nodes from TXT")
+                                val moduleId = moduleRepository.importModule(
+                                    title = cleanTitle,
+                                    author = author,
+                                    system = system,
+                                    content = "{}" // contentJson not used for structured parsing
+                                )
+                                // Save structured nodes
+                                val entities = txtNodes.map { node ->
+                                    DocumentNodeEntity(
+                                        nodeId = "${moduleId}_${node.order}",
+                                        moduleId = moduleId,
+                                        type = node.type,
+                                        level = node.level,
+                                        content = node.content,
+                                        tableData = null,
+                                        imageUri = null,
+                                        order = node.order
+                                    )
+                                }
+                                android.util.Log.d("ModuleImport", "Inserting ${entities.size} nodes for moduleId=$moduleId")
+                                try {
+                                    documentNodeRepository.insertNodes(entities)
+                                    val count = documentNodeRepository.getNodeCount(moduleId)
+                                    android.util.Log.d("ModuleImport", "Insert done, nodeCount=$count")
+                                } catch (e: Exception) {
+                                    android.util.Log.e("ModuleImport", "Insert failed: ${e.message}", e)
+                                }
+                                ImportResult.Success(title)
+                            } else {
+                                // Fallback to old flow if Python parsing fails
+                                android.util.Log.d("ModuleImport", "TXT structured parsing failed, falling back to old flow")
+                                val readResult = FileReaderUtil.readFileContent(context, uri)
+                                readResult.fold(
+                                    onSuccess = { rawContent ->
+                                        val chapters = ModuleContentParser.parseTextToChapters(rawContent)
+                                        val contentJson = ModuleContentParser.chaptersToJson(chapters)
+                                        moduleRepository.importModule(
+                                            title = cleanTitle,
+                                            author = author,
+                                            system = system,
+                                            content = contentJson
+                                        )
+                                        ImportResult.Success(title)
+                                    },
+                                    onFailure = { error ->
+                                        ImportResult.Error(error.message ?: LocalizedStrings.homeImportFail)
+                                    }
+                                )
+                            }
+                        } catch (e: Exception) {
+                            android.util.Log.e("ModuleImport", "TXT structured parsing exception: ${e.message}", e)
+                            // Fallback to old flow
+                            val readResult = FileReaderUtil.readFileContent(context, uri)
+                            readResult.fold(
+                                onSuccess = { rawContent ->
+                                    val chapters = ModuleContentParser.parseTextToChapters(rawContent)
+                                    val contentJson = ModuleContentParser.chaptersToJson(chapters)
+                                    moduleRepository.importModule(
+                                        title = cleanTitle,
+                                        author = author,
+                                        system = system,
+                                        content = contentJson
+                                    )
+                                    ImportResult.Success(title)
+                                },
+                                onFailure = { error ->
+                                    ImportResult.Error(error.message ?: LocalizedStrings.homeImportFail)
+                                }
                             )
-                            ImportResult.Success(title)
-                        },
-                        onFailure = { error ->
-                            ImportResult.Error(error.message ?: "导入失败")
                         }
-                    )
+                    } else {
+                        // Old flow: other file types → text → chapters → contentJson
+                        val readResult = FileReaderUtil.readFileContent(context, uri)
+                        readResult.fold(
+                            onSuccess = { rawContent ->
+                                android.util.Log.d("ModuleImport", "title=$cleanTitle, rawContent=${rawContent.length} chars")
+                                val chapters = ModuleContentParser.parseTextToChapters(rawContent)
+                                val contentJson = ModuleContentParser.chaptersToJson(chapters)
+                                moduleRepository.importModule(
+                                    title = cleanTitle,
+                                    author = author,
+                                    system = system,
+                                    content = contentJson
+                                )
+                                ImportResult.Success(title)
+                            },
+                            onFailure = { error ->
+                                ImportResult.Error(error.message ?: LocalizedStrings.homeImportFail)
+                            }
+                        )
+                    }
                 }
                 _importResult.value = result
             } catch (e: Exception) {
-                _importResult.value = ImportResult.Error(e.message ?: "导入失败")
+                _importResult.value = ImportResult.Error(e.message ?: LocalizedStrings.homeImportFail)
             } finally {
                 _isImporting.value = false
             }
         }
+    }
+
+    private fun tableToJson(table: List<List<String>>): String {
+        val arr = org.json.JSONArray()
+        for (row in table) {
+            val rowArr = org.json.JSONArray()
+            for (cell in row) {
+                rowArr.put(cell)
+            }
+            arr.put(rowArr)
+        }
+        return arr.toString()
+    }
+
+    private fun getFileName(context: android.content.Context, uri: Uri): String {
+        var fileName = ""
+        context.contentResolver.query(uri, null, null, null, null)?.use { cursor ->
+            val nameIndex = cursor.getColumnIndex(android.provider.OpenableColumns.DISPLAY_NAME)
+            if (cursor.moveToFirst() && nameIndex >= 0) {
+                fileName = cursor.getString(nameIndex) ?: ""
+            }
+        }
+        return fileName
     }
 
     fun importZipFromUri(uri: Uri) {
@@ -172,23 +327,49 @@ class ModuleLibraryViewModel @Inject constructor(
                 val collectionId = UUID.randomUUID().toString()
                 val resultTitle = withContext(Dispatchers.IO) {
                     val result = zipImportManager.importArchive(context, uri, collectionId)
-                    // Parse combined content into chapters, same as single file import
-                    val chapters = ModuleContentParser.parseTextToChapters(result.combinedContent)
-                    val contentJson = ModuleContentParser.chaptersToJson(chapters)
-                    moduleRepository.importModule(
-                        title = result.collectionTitle,
-                        author = "",
-                        system = "",
-                        content = contentJson,
-                        isCollection = false,
-                        moduleId = collectionId
-                    )
+
+                    if (result.structuredNodes.isNotEmpty()) {
+                        // New flow: save structured nodes
+                        moduleRepository.importModule(
+                            title = result.collectionTitle,
+                            author = "",
+                            system = "",
+                            content = "{}",
+                            isCollection = false,
+                            moduleId = collectionId
+                        )
+                        val entities = result.structuredNodes.map { node ->
+                            DocumentNodeEntity(
+                                nodeId = "${collectionId}_${node.order}",
+                                moduleId = collectionId,
+                                type = node.type,
+                                level = node.level,
+                                content = node.content,
+                                tableData = node.tableData?.let { tableToJson(it) },
+                                imageUri = node.imageUri,
+                                order = node.order
+                            )
+                        }
+                        documentNodeRepository.insertNodes(entities)
+                    } else {
+                        // Old flow: parse combined markdown into chapters
+                        val chapters = ModuleContentParser.parseTextToChapters(result.combinedContent)
+                        val contentJson = ModuleContentParser.chaptersToJson(chapters)
+                        moduleRepository.importModule(
+                            title = result.collectionTitle,
+                            author = "",
+                            system = "",
+                            content = contentJson,
+                            isCollection = false,
+                            moduleId = collectionId
+                        )
+                    }
                     zipImportManager.insertImportResult(result)
                     result.collectionTitle
                 }
                 _importResult.value = ImportResult.Success(resultTitle)
             } catch (e: Exception) {
-                _importResult.value = ImportResult.Error(e.message ?: "ZIP 导入失败")
+                _importResult.value = ImportResult.Error(e.message ?: LocalizedStrings.zipImportFailed)
             } finally {
                 _isImporting.value = false
             }

@@ -7,17 +7,32 @@ import kotlinx.coroutines.flow.Flow
 @Dao
 interface AnnotationDao {
 
+    @Query("SELECT * FROM annotations")
+    fun getAll(): Flow<List<AnnotationEntity>>
+
+    @Query("DELETE FROM annotations")
+    suspend fun deleteAll()
+
     @Query("SELECT * FROM annotations WHERE moduleId = :moduleId ORDER BY createTime DESC")
     fun getAnnotationsByModule(moduleId: String): Flow<List<AnnotationEntity>>
 
     @Query("SELECT * FROM annotations WHERE moduleId = :moduleId AND chapterId = :chapterId ORDER BY startIndex ASC")
     fun getAnnotationsByChapter(moduleId: String, chapterId: String): Flow<List<AnnotationEntity>>
 
+    @Query("SELECT * FROM annotations WHERE moduleId = :moduleId AND nodeId = :nodeId ORDER BY startIndex ASC")
+    fun getAnnotationsByNode(moduleId: String, nodeId: String): Flow<List<AnnotationEntity>>
+
+    @Query("SELECT * FROM annotations WHERE moduleId = :moduleId AND nodeId IS NOT NULL ORDER BY createTime DESC")
+    fun getNodeAnnotationsByModule(moduleId: String): Flow<List<AnnotationEntity>>
+
     @Query("SELECT * FROM annotations WHERE annotationId = :annotationId")
     suspend fun getAnnotationById(annotationId: String): AnnotationEntity?
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertAnnotation(annotation: AnnotationEntity)
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertAll(annotations: List<AnnotationEntity>)
 
     @Update
     suspend fun updateAnnotation(annotation: AnnotationEntity)

@@ -10,6 +10,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.example.keepersnotes.data.local.entity.NpcEntity
 import com.example.keepersnotes.util.Constants
+import com.example.keepersnotes.util.LocalizedStrings
 
 @Composable
 fun NpcCard(
@@ -37,7 +38,7 @@ fun NpcCard(
             }
             if (npc.alias.isNotBlank()) {
                 Text(
-                    text = "别名: ${npc.alias}",
+                    text = "${LocalizedStrings.npcAliasLabel}${npc.alias}",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -64,10 +65,10 @@ fun NpcCard(
 @Composable
 fun NpcStatusBadge(status: String) {
     val (label, color) = when (status) {
-        Constants.NPC_STATUS_ALIVE -> "存活" to MaterialTheme.colorScheme.primary
-        Constants.NPC_STATUS_DEAD -> "死亡" to MaterialTheme.colorScheme.error
-        Constants.NPC_STATUS_MISSING -> "失踪" to MaterialTheme.colorScheme.tertiary
-        Constants.NPC_STATUS_UNKNOWN -> "未知" to MaterialTheme.colorScheme.outline
+        Constants.NPC_STATUS_ALIVE -> LocalizedStrings.npcStatusAlive to MaterialTheme.colorScheme.primary
+        Constants.NPC_STATUS_DEAD -> LocalizedStrings.npcStatusDead to MaterialTheme.colorScheme.error
+        Constants.NPC_STATUS_MISSING -> LocalizedStrings.npcStatusMissing to MaterialTheme.colorScheme.tertiary
+        Constants.NPC_STATUS_UNKNOWN -> LocalizedStrings.npcStatusUnknown to MaterialTheme.colorScheme.outline
         else -> status to MaterialTheme.colorScheme.outline
     }
     SuggestionChip(

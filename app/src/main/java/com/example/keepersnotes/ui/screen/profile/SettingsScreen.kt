@@ -80,8 +80,8 @@ fun SettingsScreen(
                 supportingContent = {
                     Text(
                         when (languageMode) {
-                            ThemePreferences.LANGUAGE_CHINESE -> "中文"
-                            ThemePreferences.LANGUAGE_ENGLISH -> "English"
+                            ThemePreferences.LANGUAGE_CHINESE -> LocalizedStrings.languageChinese
+                            ThemePreferences.LANGUAGE_ENGLISH -> LocalizedStrings.languageEnglish
                             else -> LocalizedStrings.settingsFollowSystem
                         }
                     )
@@ -190,16 +190,6 @@ private fun ThemeSelector(
             modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
             verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
         ) {
-            Icon(
-                imageVector = when (selectedMode) {
-                    ThemePreferences.THEME_LIGHT -> Icons.Default.LightMode
-                    ThemePreferences.THEME_DARK -> Icons.Default.DarkMode
-                    else -> Icons.Default.SettingsBrightness
-                },
-                contentDescription = null,
-                modifier = Modifier.size(20.dp)
-            )
-            Spacer(modifier = Modifier.width(4.dp))
             Text(
                 text = when (selectedMode) {
                     ThemePreferences.THEME_LIGHT -> LocalizedStrings.settingsLightShort
@@ -225,24 +215,21 @@ private fun ThemeSelector(
                 onClick = {
                     onModeSelected(ThemePreferences.THEME_SYSTEM)
                     expanded = false
-                },
-                leadingIcon = { Icon(Icons.Default.SettingsBrightness, contentDescription = null) }
+                }
             )
             DropdownMenuItem(
                 text = { Text(LocalizedStrings.settingsLight) },
                 onClick = {
                     onModeSelected(ThemePreferences.THEME_LIGHT)
                     expanded = false
-                },
-                leadingIcon = { Icon(Icons.Default.LightMode, contentDescription = null) }
+                }
             )
             DropdownMenuItem(
                 text = { Text(LocalizedStrings.settingsDark) },
                 onClick = {
                     onModeSelected(ThemePreferences.THEME_DARK)
                     expanded = false
-                },
-                leadingIcon = { Icon(Icons.Default.DarkMode, contentDescription = null) }
+                }
             )
         }
     }
@@ -264,7 +251,7 @@ private fun LanguageSelector(
         ) {
             Text(
                 text = when (selectedLanguage) {
-                    ThemePreferences.LANGUAGE_CHINESE -> "中文"
+                    ThemePreferences.LANGUAGE_CHINESE -> LocalizedStrings.languageChinese
                     ThemePreferences.LANGUAGE_ENGLISH -> "EN"
                     else -> LocalizedStrings.settingsFollowSystem
                 },
@@ -290,14 +277,14 @@ private fun LanguageSelector(
                 }
             )
             DropdownMenuItem(
-                text = { Text("中文") },
+                text = { Text(LocalizedStrings.languageChinese) },
                 onClick = {
                     onLanguageSelected(ThemePreferences.LANGUAGE_CHINESE)
                     expanded = false
                 }
             )
             DropdownMenuItem(
-                text = { Text("English") },
+                text = { Text(LocalizedStrings.languageEnglish) },
                 onClick = {
                     onLanguageSelected(ThemePreferences.LANGUAGE_ENGLISH)
                     expanded = false

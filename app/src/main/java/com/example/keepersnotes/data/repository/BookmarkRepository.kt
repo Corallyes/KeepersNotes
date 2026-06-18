@@ -42,6 +42,27 @@ class BookmarkRepository @Inject constructor(
         return bookmark
     }
 
+    suspend fun addNodeBookmark(
+        moduleId: String,
+        nodeId: String,
+        chapterTitle: String = "",
+        selectedText: String = "",
+        note: String = "",
+        color: Long = 0xFFFF9800
+    ): BookmarkEntity {
+        val bookmark = BookmarkEntity(
+            bookmarkId = UUID.randomUUID().toString(),
+            moduleId = moduleId,
+            nodeId = nodeId,
+            chapterTitle = chapterTitle,
+            selectedText = selectedText,
+            note = note,
+            color = color
+        )
+        bookmarkDao.insertBookmark(bookmark)
+        return bookmark
+    }
+
     suspend fun updateBookmark(bookmark: BookmarkEntity) =
         bookmarkDao.updateBookmark(bookmark)
 

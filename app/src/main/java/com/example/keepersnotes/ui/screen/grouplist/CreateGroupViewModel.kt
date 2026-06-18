@@ -18,6 +18,7 @@ import com.example.keepersnotes.data.repository.ModuleRepository
 import com.example.keepersnotes.data.repository.NpcRepository
 import com.example.keepersnotes.data.repository.PlayerCharacterRepository
 import com.example.keepersnotes.util.Constants
+import com.example.keepersnotes.util.LocalizedStrings
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.flow.first
@@ -126,10 +127,10 @@ class CreateGroupViewModel @Inject constructor(
                         eventId = java.util.UUID.randomUUID().toString(),
                         groupId = groupId,
                         title = when {
-                            isStart && isEnd -> "$name 开团"
-                            isStart -> "$name 开团日"
-                            isEnd -> "$name 预计结束"
-                            else -> "$name 开团中"
+                            isStart && isEnd -> LocalizedStrings.calendarSessionStart(name)
+                            isStart -> LocalizedStrings.calendarSessionStartDate(name)
+                            isEnd -> LocalizedStrings.calendarSessionEndDate(name)
+                            else -> LocalizedStrings.calendarSessionInProgress(name)
                         },
                         date = date,
                         time = time,
@@ -149,7 +150,7 @@ class CreateGroupViewModel @Inject constructor(
                     CalendarEventEntity(
                         eventId = java.util.UUID.randomUUID().toString(),
                         groupId = groupId,
-                        title = "$name 开团日",
+                        title = LocalizedStrings.calendarSessionStartDate(name),
                         date = date,
                         time = time,
                         type = "session_start"
@@ -161,7 +162,7 @@ class CreateGroupViewModel @Inject constructor(
                     CalendarEventEntity(
                         eventId = java.util.UUID.randomUUID().toString(),
                         groupId = groupId,
-                        title = "$name 预计结束",
+                        title = LocalizedStrings.calendarSessionEndDate(name),
                         date = date,
                         time = time,
                         type = "session_end"
@@ -261,7 +262,7 @@ class CreateGroupViewModel @Inject constructor(
                 if (clue.description.isNotBlank()) append(clue.description)
                 if (clue.source.isNotBlank()) {
                     if (isNotEmpty()) append("\n\n")
-                    append("来源：${clue.source}")
+                    append("${LocalizedStrings.clueSource}：${clue.source}")
                 }
             }
             Log.d("CreateGroup", "  Creating memo: title='${clue.name}', type=clue, content=${content.length} chars, isHidden=${clue.isHidden}")
@@ -280,7 +281,7 @@ class CreateGroupViewModel @Inject constructor(
     fun submit() {
         val state = _uiState.value
         if (state.groupName.isBlank()) {
-            _uiState.update { it.copy(groupNameError = "请输入团名称") }
+            _uiState.update { it.copy(groupNameError = LocalizedStrings.groupNameRequired) }
             return
         }
         _uiState.update { it.copy(isSubmitting = true) }

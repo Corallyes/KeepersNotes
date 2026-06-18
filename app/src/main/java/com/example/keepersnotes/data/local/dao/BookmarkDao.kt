@@ -7,6 +7,12 @@ import kotlinx.coroutines.flow.Flow
 @Dao
 interface BookmarkDao {
 
+    @Query("SELECT * FROM bookmarks")
+    fun getAll(): Flow<List<BookmarkEntity>>
+
+    @Query("DELETE FROM bookmarks")
+    suspend fun deleteAll()
+
     @Query("SELECT * FROM bookmarks WHERE moduleId = :moduleId ORDER BY createTime DESC")
     fun getBookmarksByModule(moduleId: String): Flow<List<BookmarkEntity>>
 
@@ -18,6 +24,9 @@ interface BookmarkDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertBookmark(bookmark: BookmarkEntity)
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertAll(bookmarks: List<BookmarkEntity>)
 
     @Update
     suspend fun updateBookmark(bookmark: BookmarkEntity)

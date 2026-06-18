@@ -1,6 +1,5 @@
 package com.example.keepersnotes.ui.screen.profile
 
-import android.content.Intent
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.*
@@ -15,6 +14,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import com.example.keepersnotes.data.backup.BackupManager
 import com.example.keepersnotes.ui.component.CompactTopBar
+import com.example.keepersnotes.util.LocalizedStrings
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -34,13 +34,14 @@ fun BackupScreen(
     val snackbarHostState = remember { SnackbarHostState() }
     var isExporting by remember { mutableStateOf(false) }
     var isImporting by remember { mutableStateOf(false) }
+    var showImportConfirm by remember { mutableStateOf(false) }
 
     val timestamp = remember {
         SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())
     }
 
     val exportLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.CreateDocument("application/json")
+        contract = ActivityResultContracts.CreateDocument("application/zip")
     ) { uri ->
         uri?.let {
             scope.launch {
@@ -51,9 +52,9 @@ fun BackupScreen(
                             viewModel.backupManager.exportTo(stream)
                         }
                     }
-                    snackbarHostState.showSnackbar("备份成功")
+                    snackbarHostState.showSnackbar(LocalizedStrings.backupExportSuccess)
                 } catch (e: Exception) {
-                    snackbarHostState.showSnackbar("备份失败: ${e.message}")
+                    snackbarHostState.showSnackbar("${LocalizedStrings.backupExportFail}: ${e.message}")
                 } finally {
                     isExporting = false
                 }
@@ -73,9 +74,9 @@ fun BackupScreen(
                             viewModel.backupManager.importFrom(stream)
                         }
                     }
-                    snackbarHostState.showSnackbar("导入成功，数据已恢复")
+                    snackbarHostState.showSnackbar(LocalizedStrings.backupImportSuccess)
                 } catch (e: Exception) {
-                    snackbarHostState.showSnackbar("导入失败: ${e.message}")
+                    snackbarHostState.showSnackbar("${LocalizedStrings.backupImportFail}: ${e.message}")
                 } finally {
                     isImporting = false
                 }
@@ -83,14 +84,38 @@ fun BackupScreen(
         }
     }
 
+    // Import confirmation dialog
+    if (showImportConfirm) {
+        AlertDialog(
+            onDismissRequest = { showImportConfirm = false },
+            title = { Text(LocalizedStrings.backupImportConfirmTitle) },
+            text = { Text(LocalizedStrings.backupImportConfirmMessage) },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showImportConfirm = false
+                        importLauncher.launch(arrayOf("application/zip", "application/octet-stream"))
+                    }
+                ) {
+                    Text(LocalizedStrings.confirm)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showImportConfirm = false }) {
+                    Text(LocalizedStrings.cancel)
+                }
+            }
+        )
+    }
+
     Scaffold(
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
         topBar = {
             CompactTopBar(
-                title = "数据备份",
+                title = LocalizedStrings.profileBackup,
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "返回")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = LocalizedStrings.back)
                     }
                 }
             )
@@ -108,18 +133,18 @@ fun BackupScreen(
             Card(modifier = Modifier.fillMaxWidth()) {
                 Column(modifier = Modifier.padding(16.dp)) {
                     Text(
-                        "导出数据",
+                        LocalizedStrings.backupExportTitle,
                         style = MaterialTheme.typography.titleMedium
                     )
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
-                        "将所有团、角色、模组、备忘录等数据导出为 JSON 备份文件",
+                        LocalizedStrings.backupExportDesc,
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Spacer(modifier = Modifier.height(12.dp))
                     Button(
-                        onClick = { exportLauncher.launch("keepers_backup_$timestamp.json") },
+                        onClick = { exportLauncher.launch("keepers_backup_$timestamp.zip") },
                         modifier = Modifier.fillMaxWidth(),
                         enabled = !isExporting && !isImporting
                     ) {
@@ -129,11 +154,11 @@ fun BackupScreen(
                                 strokeWidth = 2.dp
                             )
                             Spacer(modifier = Modifier.width(8.dp))
-                            Text("导出中...")
+                            Text(LocalizedStrings.backupExporting)
                         } else {
                             Icon(Icons.Default.Upload, contentDescription = null)
                             Spacer(modifier = Modifier.width(8.dp))
-                            Text("导出备份")
+                            Text(LocalizedStrings.backupExportButton)
                         }
                     }
                 }
@@ -143,18 +168,18 @@ fun BackupScreen(
             Card(modifier = Modifier.fillMaxWidth()) {
                 Column(modifier = Modifier.padding(16.dp)) {
                     Text(
-                        "导入数据",
+                        LocalizedStrings.backupImportTitle,
                         style = MaterialTheme.typography.titleMedium
                     )
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
-                        "从备份文件恢复数据（将覆盖现有数据）",
+                        LocalizedStrings.backupImportDesc,
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Spacer(modifier = Modifier.height(12.dp))
                     OutlinedButton(
-                        onClick = { importLauncher.launch(arrayOf("application/json")) },
+                        onClick = { showImportConfirm = true },
                         modifier = Modifier.fillMaxWidth(),
                         enabled = !isExporting && !isImporting
                     ) {
@@ -164,11 +189,11 @@ fun BackupScreen(
                                 strokeWidth = 2.dp
                             )
                             Spacer(modifier = Modifier.width(8.dp))
-                            Text("导入中...")
+                            Text(LocalizedStrings.backupImporting)
                         } else {
                             Icon(Icons.Default.Download, contentDescription = null)
                             Spacer(modifier = Modifier.width(8.dp))
-                            Text("导入备份")
+                            Text(LocalizedStrings.backupImportButton)
                         }
                     }
                 }
@@ -192,7 +217,7 @@ fun BackupScreen(
                     )
                     Spacer(modifier = Modifier.width(12.dp))
                     Text(
-                        "备份文件包含所有本地数据。更新 APP 前建议先导出备份，更新后再导入恢复。覆盖安装（不卸载）数据会自动保留，备份是额外的安全保障。",
+                        LocalizedStrings.backupInfoText,
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSecondaryContainer
                     )

@@ -94,8 +94,8 @@ fun GroupListScreen(
     if (showDeleteDialog && deleteGroup != null) {
         AlertDialog(
             onDismissRequest = { showDeleteDialog = false },
-            title = { Text("删除团") },
-            text = { Text("确定要删除「${deleteGroup.groupName}」吗？此操作不可撤销，团内所有数据将被删除。") },
+            title = { Text(LocalizedStrings.groupDeleteTitle) },
+            text = { Text(LocalizedStrings.groupDeleteConfirm(deleteGroup.groupName)) },
             confirmButton = {
                 TextButton(
                     onClick = {
@@ -104,7 +104,7 @@ fun GroupListScreen(
                         pendingDeleteGroup = null
                     }
                 ) {
-                    Text("删除", color = MaterialTheme.colorScheme.error)
+                    Text(LocalizedStrings.delete, color = MaterialTheme.colorScheme.error)
                 }
             },
             dismissButton = {
@@ -112,7 +112,7 @@ fun GroupListScreen(
                     showDeleteDialog = false
                     pendingDeleteGroup = null
                 }) {
-                    Text("取消")
+                    Text(LocalizedStrings.cancel)
                 }
             }
         )

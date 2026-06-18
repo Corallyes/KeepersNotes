@@ -192,7 +192,7 @@ private fun KpProfileEditDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("编辑个人信息") },
+        title = { Text(LocalizedStrings.profileEditTitle) },
         text = {
             Column(
                 modifier = Modifier.fillMaxWidth(),
@@ -242,7 +242,7 @@ private fun KpProfileEditDialog(
                         Box(contentAlignment = Alignment.Center) {
                             Icon(
                                 Icons.Default.Edit,
-                                contentDescription = "更换头像",
+                                contentDescription = LocalizedStrings.profileChangeAvatar,
                                 modifier = Modifier.size(16.dp),
                                 tint = MaterialTheme.colorScheme.onPrimary
                             )
@@ -251,7 +251,7 @@ private fun KpProfileEditDialog(
                 }
 
                 Text(
-                    "点击头像更换",
+                    LocalizedStrings.profileClickToChange,
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -260,7 +260,7 @@ private fun KpProfileEditDialog(
                 OutlinedTextField(
                     value = nickname,
                     onValueChange = { nickname = it },
-                    label = { Text("昵称") },
+                    label = { Text(LocalizedStrings.profileNickname) },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true
                 )
@@ -276,12 +276,12 @@ private fun KpProfileEditDialog(
                 }
                 onDismiss()
             }) {
-                Text("保存")
+                Text(LocalizedStrings.save)
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("取消")
+                Text(LocalizedStrings.cancel)
             }
         }
     )

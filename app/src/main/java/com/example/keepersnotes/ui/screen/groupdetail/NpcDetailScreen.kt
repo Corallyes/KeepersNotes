@@ -18,6 +18,7 @@ import com.example.keepersnotes.ui.component.CompactTopBar
 import com.example.keepersnotes.ui.component.NpcStatusBadge
 import com.example.keepersnotes.ui.screen.modulelibrary.Gender
 import com.example.keepersnotes.util.Constants
+import com.example.keepersnotes.util.LocalizedStrings
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -33,15 +34,15 @@ fun NpcDetailScreen(
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
         topBar = {
             CompactTopBar(
-                title = npc?.name ?: "NPC详情",
+                title = npc?.name ?: LocalizedStrings.npcDetail,
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "返回")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = LocalizedStrings.back)
                     }
                 },
                 actions = {
                     IconButton(onClick = { showEditSheet = true }) {
-                        Icon(Icons.Default.Edit, contentDescription = "编辑")
+                        Icon(Icons.Default.Edit, contentDescription = LocalizedStrings.npcEdit)
                     }
                 }
             )
@@ -50,7 +51,7 @@ fun NpcDetailScreen(
         val currentNpc = npc
         if (currentNpc == null) {
             Box(modifier = Modifier.fillMaxSize().padding(padding)) {
-                Text("加载中...", modifier = Modifier.padding(16.dp))
+                Text(LocalizedStrings.groupLoading, modifier = Modifier.padding(16.dp))
             }
             return@Scaffold
         }
@@ -75,13 +76,13 @@ fun NpcDetailScreen(
                         NpcStatusBadge(status = currentNpc.status)
                     }
                     if (currentNpc.alias.isNotBlank()) {
-                        Text("别名: ${currentNpc.alias}", style = MaterialTheme.typography.bodyMedium)
+                        Text("${LocalizedStrings.npcAlias}: ${currentNpc.alias}", style = MaterialTheme.typography.bodyMedium)
                     }
                     if (currentNpc.occupation.isNotBlank()) {
-                        Text("职业: ${currentNpc.occupation}", style = MaterialTheme.typography.bodyMedium)
+                        Text("${LocalizedStrings.npcOccupation}: ${currentNpc.occupation}", style = MaterialTheme.typography.bodyMedium)
                     }
                     if (currentNpc.gender.isNotBlank()) {
-                        Text("性别: ${Gender.fromKey(currentNpc.gender)?.label ?: currentNpc.gender}", style = MaterialTheme.typography.bodyMedium)
+                        Text("${LocalizedStrings.pcGender}: ${Gender.fromKey(currentNpc.gender)?.labelRes() ?: currentNpc.gender}", style = MaterialTheme.typography.bodyMedium)
                     }
                 }
             }
@@ -90,7 +91,7 @@ fun NpcDetailScreen(
             if (currentNpc.description.isNotBlank()) {
                 Card(modifier = Modifier.fillMaxWidth()) {
                     Column(modifier = Modifier.padding(16.dp)) {
-                        Text("描述", style = MaterialTheme.typography.titleSmall)
+                        Text(LocalizedStrings.npcDescription, style = MaterialTheme.typography.titleSmall)
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(currentNpc.description, style = MaterialTheme.typography.bodyMedium)
                     }
@@ -101,7 +102,7 @@ fun NpcDetailScreen(
             if (currentNpc.truePurpose.isNotBlank()) {
                 Card(modifier = Modifier.fillMaxWidth()) {
                     Column(modifier = Modifier.padding(16.dp)) {
-                        Text("真实目的（暗线）", style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.error)
+                        Text(LocalizedStrings.npcTruePurpose, style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.error)
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(currentNpc.truePurpose, style = MaterialTheme.typography.bodyMedium)
                     }
@@ -112,7 +113,7 @@ fun NpcDetailScreen(
             if (currentNpc.relationshipToPc.isNotBlank()) {
                 Card(modifier = Modifier.fillMaxWidth()) {
                     Column(modifier = Modifier.padding(16.dp)) {
-                        Text("与PC关系", style = MaterialTheme.typography.titleSmall)
+                        Text(LocalizedStrings.npcPcRelation, style = MaterialTheme.typography.titleSmall)
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(currentNpc.relationshipToPc, style = MaterialTheme.typography.bodyMedium)
                     }
@@ -123,7 +124,7 @@ fun NpcDetailScreen(
             if (currentNpc.kpNotes.isNotBlank()) {
                 Card(modifier = Modifier.fillMaxWidth()) {
                     Column(modifier = Modifier.padding(16.dp)) {
-                        Text("KP备注", style = MaterialTheme.typography.titleSmall)
+                        Text(LocalizedStrings.groupRemarks, style = MaterialTheme.typography.titleSmall)
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(currentNpc.kpNotes, style = MaterialTheme.typography.bodyMedium)
                     }
@@ -178,13 +179,13 @@ private fun EditNpcSheet(
             contentPadding = PaddingValues(bottom = 32.dp)
         ) {
             item {
-                Text("编辑NPC", style = MaterialTheme.typography.titleLarge)
+                Text(LocalizedStrings.npcEdit, style = MaterialTheme.typography.titleLarge)
             }
             item {
                 OutlinedTextField(
                     value = name,
                     onValueChange = { name = it },
-                    label = { Text("名称") },
+                    label = { Text(LocalizedStrings.npcName) },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true
                 )
@@ -193,7 +194,7 @@ private fun EditNpcSheet(
                 OutlinedTextField(
                     value = alias,
                     onValueChange = { alias = it },
-                    label = { Text("别名") },
+                    label = { Text(LocalizedStrings.npcAlias) },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true
                 )
@@ -202,7 +203,7 @@ private fun EditNpcSheet(
                 OutlinedTextField(
                     value = occupation,
                     onValueChange = { occupation = it },
-                    label = { Text("职业") },
+                    label = { Text(LocalizedStrings.npcOccupation) },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true
                 )
@@ -213,10 +214,10 @@ private fun EditNpcSheet(
                     onExpandedChange = { genderExpanded = it }
                 ) {
                     OutlinedTextField(
-                        value = Gender.fromKey(gender)?.label ?: "",
+                        value = Gender.fromKey(gender)?.labelRes() ?: "",
                         onValueChange = {},
                         readOnly = true,
-                        label = { Text("性别") },
+                        label = { Text(LocalizedStrings.pcGender) },
                         trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = genderExpanded) },
                         modifier = Modifier.fillMaxWidth().menuAnchor()
                     )
@@ -226,7 +227,7 @@ private fun EditNpcSheet(
                     ) {
                         Gender.entries.forEach { g ->
                             DropdownMenuItem(
-                                text = { Text(g.label) },
+                                text = { Text(g.labelRes()) },
                                 onClick = { gender = g.key; genderExpanded = false }
                             )
                         }
@@ -234,13 +235,13 @@ private fun EditNpcSheet(
                 }
             }
             item {
-                Text("状态", style = MaterialTheme.typography.labelMedium)
+                Text(LocalizedStrings.npcStatus, style = MaterialTheme.typography.labelMedium)
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     listOf(
-                        Constants.NPC_STATUS_ALIVE to "存活",
-                        Constants.NPC_STATUS_DEAD to "死亡",
-                        Constants.NPC_STATUS_MISSING to "失踪",
-                        Constants.NPC_STATUS_UNKNOWN to "未知"
+                        Constants.NPC_STATUS_ALIVE to LocalizedStrings.npcStatusAlive,
+                        Constants.NPC_STATUS_DEAD to LocalizedStrings.npcStatusDead,
+                        Constants.NPC_STATUS_MISSING to LocalizedStrings.npcStatusMissing,
+                        Constants.NPC_STATUS_UNKNOWN to LocalizedStrings.npcStatusUnknown
                     ).forEach { (value, label) ->
                         FilterChip(
                             selected = status == value,
@@ -254,7 +255,7 @@ private fun EditNpcSheet(
                 OutlinedTextField(
                     value = description,
                     onValueChange = { description = it },
-                    label = { Text("描述") },
+                    label = { Text(LocalizedStrings.npcDescription) },
                     modifier = Modifier.fillMaxWidth(),
                     minLines = 3
                 )
@@ -263,7 +264,7 @@ private fun EditNpcSheet(
                 OutlinedTextField(
                     value = truePurpose,
                     onValueChange = { truePurpose = it },
-                    label = { Text("真实目的（暗线）") },
+                    label = { Text(LocalizedStrings.npcTruePurpose) },
                     modifier = Modifier.fillMaxWidth(),
                     minLines = 2
                 )
@@ -272,7 +273,7 @@ private fun EditNpcSheet(
                 OutlinedTextField(
                     value = relationshipToPc,
                     onValueChange = { relationshipToPc = it },
-                    label = { Text("与PC关系") },
+                    label = { Text(LocalizedStrings.npcPcRelation) },
                     modifier = Modifier.fillMaxWidth(),
                     minLines = 2
                 )
@@ -281,7 +282,7 @@ private fun EditNpcSheet(
                 OutlinedTextField(
                     value = kpNotes,
                     onValueChange = { kpNotes = it },
-                    label = { Text("KP备注") },
+                    label = { Text(LocalizedStrings.groupRemarks) },
                     modifier = Modifier.fillMaxWidth(),
                     minLines = 2
                 )
@@ -305,7 +306,7 @@ private fun EditNpcSheet(
                     },
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Text("保存")
+                    Text(LocalizedStrings.save)
                 }
             }
         }

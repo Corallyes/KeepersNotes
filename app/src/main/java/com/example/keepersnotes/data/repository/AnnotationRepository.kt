@@ -44,6 +44,32 @@ class AnnotationRepository @Inject constructor(
         return annotation
     }
 
+    suspend fun addNodeAnnotation(
+        moduleId: String,
+        nodeId: String,
+        startIndex: Int,
+        endIndex: Int,
+        selectedText: String,
+        note: String,
+        color: Long = 0xFF4CAF50
+    ): AnnotationEntity {
+        val annotation = AnnotationEntity(
+            annotationId = UUID.randomUUID().toString(),
+            moduleId = moduleId,
+            nodeId = nodeId,
+            startIndex = startIndex,
+            endIndex = endIndex,
+            selectedText = selectedText,
+            note = note,
+            color = color
+        )
+        annotationDao.insertAnnotation(annotation)
+        return annotation
+    }
+
+    fun getNodeAnnotationsByModule(moduleId: String): Flow<List<AnnotationEntity>> =
+        annotationDao.getNodeAnnotationsByModule(moduleId)
+
     suspend fun updateAnnotation(annotation: AnnotationEntity) =
         annotationDao.updateAnnotation(annotation)
 
